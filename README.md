@@ -1,5 +1,6 @@
 # GraphFPN: Graph Feature Pyramid Network for Object Detection
 
+https://arxiv.org/abs/2108.00580
 
 ## Abstract
 
