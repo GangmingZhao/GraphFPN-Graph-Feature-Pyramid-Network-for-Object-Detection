@@ -41,6 +41,7 @@ if __name__ == '__main__':
     # Graph construction
     dim_h = 256
     g1 = dgl.graph(([0, 0, 0, 0, 0], [1, 2, 3, 4, 5]), num_nodes = 1024)
+    print(g1.edges())
 
 
     g2 = dgl.graph(([0, 0, 0], [1, 2, 3]), num_nodes = 4)
@@ -57,8 +58,5 @@ if __name__ == '__main__':
     h_out = tf.squeeze(h_out)
     # print(g1.ndata['x'].shape)
     # print(h_out.shape)
-
-
-
     features = g1.ndata['x'] = tf.ones((g1.num_nodes(), 256))
     model = contextual_layers(g1.ndata['x'].shape[1], dim_h)

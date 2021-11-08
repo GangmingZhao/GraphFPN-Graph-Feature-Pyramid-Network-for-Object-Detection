@@ -6,7 +6,7 @@ from easydict import EasyDict as edict
 
 
 def parse_train_configs():
-    parser = argparse.ArgumentParser(description='The Implementation using PyTorch')
+    parser = argparse.ArgumentParser(description='The Implementation using Te')
     parser.add_argument('--seed', type=int, default=2020,
                         help='re-produce the results with seed random')
     parser.add_argument('--saved_fn', type=str, default='fpn_resnet_18', metavar='FN',
@@ -107,8 +107,7 @@ def parse_train_configs():
     ####################################################################
     ############## Hardware configurations #############################
     ####################################################################
-    configs.device = torch.device('cpu' if configs.no_cuda else 'cuda')
-    configs.ngpus_per_node = torch.cuda.device_count()
+    configs.device = tf.device('cpu' if configs.no_cuda else 'cuda')
 
     configs.pin_memory = True
     configs.input_size = (608, 608)
