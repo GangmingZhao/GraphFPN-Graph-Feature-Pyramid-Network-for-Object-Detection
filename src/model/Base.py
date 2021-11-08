@@ -4,7 +4,6 @@ import tensorflow as tf
 import scipy.sparse as sp
 from dgl.nn import GATConv
 import networkx as nx
-import torch as th
 
 # # 1.2 图、节点和边
 # # 边 0->1, 0->2, 0->3, 1->3

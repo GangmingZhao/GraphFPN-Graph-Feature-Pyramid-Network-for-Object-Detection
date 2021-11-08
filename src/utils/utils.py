@@ -1,5 +1,3 @@
-from math import factorial
-from pycparser.c_ast import Continue
 import tensorflow as tf
 import numpy as np
 import dgl
@@ -16,14 +14,11 @@ def stochastic_create_edges(g, n_edges = 0):
         g.add_edges(tf.constant([i], dtype = "int64"), tf.constant([j], dtype = "int64"))
     
     # Add the reset of edges
-    print(max_edges)
     if n_edges:
         while g.num_edges() < n_edges and g.num_edges() < max_edges:
             i = np.random.randint(0, g.num_nodes())
             j = np.random.randint(0, g.num_nodes())
             g.add_edges(tf.constant([i], dtype = "int64"), tf.constant([j], dtype = "int64")) if not (g.has_edges_between(i,j) or g.has_edges_between(j,i) or i == j) else 0
-            # print(i,j)
-            # print(g.num_edges())
             if g.num_edges() == max_edges:
                 break
     print(g.num_edges())
