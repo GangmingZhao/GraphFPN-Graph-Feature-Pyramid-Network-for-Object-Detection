@@ -26,12 +26,14 @@ def stochastic_create_edges(g, n_edges = 0):
     return dgl.add_reverse_edges(g)
 
 
-def heterograph():
+def heterograph(name_n_feature, dim_n_feature):
     graph_data = {
         ('n', 'contextual', 'n'): (tf.constant([0]), tf.constant([1])),
         ('n', 'hierarchical', 'n'): (tf.constant([0]), tf.constant([1]))
         }
-    return dgl.to_bidirected(dgl.heterograph(graph_data))
+    g = dgl.heterograph(graph_data)
+    g.nodes['n'].data[name_n_feature] = tf.ones([g.num_nodes(), dim_n_feature])
+    return dgl.to_bidirected(g)
 
 
 def hetero_add_edges(g, u, v, edges):
@@ -41,19 +43,25 @@ def hetero_add_edges(g, u, v, edges):
         g.add_edges(tf.constant(u), tf.constant(v), etype = edges)
     return dgl.to_bidirected(g)
 
-def hetero_add_n_feature(g):
-    g.nodes['n'].data['x'] = tf.ones([g.num_nodes(), 4]) # n_feature = 4
+
+def hetero_add_n_feature(g, name_n_feature, indice_node, val):
+    # assert val.shape == g.nodes['n'][0].shape, "val added shape is not the same as the node dimension"
+    g.nodes['n'].data[name_n_feature][indice_node]= val
     return g
+
 
 def hetero_subgraph(g):
     g.add
 
 
 if __name__ == "__main__":
-    g = heterograph()
-    print(g.edges(etype = "contextual"))
-    g = hetero_add_edges(g, 0, 2, "contextual")
-    print(g.edges(etype = "contextual"))
+    g = heterograph("x", 4)
+    print(g.ndata["x"])
+    # print(g.nodes['n'].data['x'])
+    # hetero_add_n_feature(g, "x", 0, tf.constant([1,2,3,4]))
+    # print(g.edges(etype = "contextual"))
+    # g = hetero_add_edges(g, 0, 2, "contextual")
+    # print(g.edges(etype = "contextual"))
     # print(g.ndata["x"][0])
     
 
