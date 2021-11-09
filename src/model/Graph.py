@@ -43,13 +43,9 @@ if __name__ == '__main__':
     g1 = dgl.graph(([0, 0, 0, 0, 0], [1, 2, 3, 4, 5]), num_nodes = 1024)
     print(g1.edges())
 
-
-    g2 = dgl.graph(([0, 0, 0], [1, 2, 3]), num_nodes = 4)
     g1 = dgl.add_reverse_edges(g1)
-    g2 = dgl.add_reverse_edges(g2)
     # load data to graph
     features = g1.ndata['x'] = tf.ones((g1.num_nodes(), 256))
-    features = g2.ndata['x'] = tf.ones((g2.num_nodes(), 256))
 
 
     lay1 = contextual_layers(g1.ndata['x'].shape[1], dim_h)

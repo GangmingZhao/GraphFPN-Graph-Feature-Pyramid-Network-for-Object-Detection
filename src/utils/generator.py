@@ -3,6 +3,15 @@ import numpy as np
 import dgl
 import datetime
 import pdb
+import os, sys
+
+src_dir = os.path.dirname(os.path.realpath(__file__))
+while not src_dir.endswith("src"):
+    src_dir = os.path.dirname(src_dir)
+if src_dir not in sys.path:
+    sys.path.append(src_dir)
+
+from model.Graph import *
 
 def stochastic_create_edges(g, n_edges = 0):
     assert n_edges>g.num_nodes(), "number of edges is smaller than that of nodes"
@@ -28,8 +37,8 @@ def stochastic_create_edges(g, n_edges = 0):
 
 def heterograph(name_n_feature, dim_n_feature):
     graph_data = {
-        ('n', 'contextual', 'n'): (tf.constant([0]), tf.constant([1])),
-        ('n', 'hierarchical', 'n'): (tf.constant([0]), tf.constant([1]))
+        ('n', 'contextual', 'n'): (tf.constant([0, 1]), tf.constant([1, 2])),
+        ('n', 'hierarchical', 'n'): (tf.constant([0, 1]), tf.constant([1, 2]))
         }
     g = dgl.heterograph(graph_data)
     g.nodes['n'].data[name_n_feature] = tf.ones([g.num_nodes(), dim_n_feature])
@@ -50,13 +59,25 @@ def hetero_add_n_feature(g, name_n_feature, indice_node, val):
     return g
 
 
-def hetero_subgraph(g):
-    g.add
+def hetero_subgraph(g, edges):
+    return dgl.edge_type_subgraph(g, [edges])
 
 
 if __name__ == "__main__":
-    g = heterograph("x", 4)
+    dim_h = 3
+    g = heterograph("x", 256)
+    subg = hetero_subgraph(g, "hierarchical")
+    # print(subg.edges())
+    lay1 = contextual_layers(subg.ndata['x'].shape[1], 256)
+
+    features = subg.ndata['x']
+    # print(features)
+    h_out = tf.squeeze(lay1(subg, features))
+
+    subg.apply_nodes(lambda nodes: {'x' : h_out})
     print(g.ndata["x"])
+
+    # print(subg.edges())
     # print(g.nodes['n'].data['x'])
     # hetero_add_n_feature(g, "x", 0, tf.constant([1,2,3,4]))
     # print(g.edges(etype = "contextual"))
