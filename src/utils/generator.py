@@ -23,7 +23,7 @@ def stochastic_create_edges(g, n_edges = 0):
                 g.add_edges(tf.constant([i], dtype = "int64"), tf.constant([j], dtype = "int64")) if not (g.has_edges_between(i,j) or g.has_edges_between(j,i) or i == j) else 0
                 if g.num_edges() == max_edges:
                     break
-    return dgl.add_reverse_edges(g)
+    return dgl.add_reverse_edges(g, copy_ndata = True)
 
 
 def heterograph(name_n_feature, dim_n_feature):
@@ -33,7 +33,7 @@ def heterograph(name_n_feature, dim_n_feature):
         }
     g = dgl.heterograph(graph_data)
     g.nodes['n'].data[name_n_feature] = tf.ones([g.num_nodes(), dim_n_feature])
-    return dgl.to_bidirected(g)
+    return dgl.to_bidirected(g, copy_ndata = True)
 
 
 def hetero_add_edges(g, u, v, edges):
@@ -41,7 +41,7 @@ def hetero_add_edges(g, u, v, edges):
         g.add_edges(tf.constant([u]), tf.constant([v]), etype = edges)
     else:
         g.add_edges(tf.constant(u), tf.constant(v), etype = edges)
-    return dgl.to_bidirected(g)
+    return dgl.to_bidirected(g, copy_ndata = True)
 
 
 def hetero_add_n_feature(g, name_n_feature, indice_node, val):
