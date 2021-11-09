@@ -7,10 +7,10 @@ import pdb
 from dgl.nn.tensorflow import conv, glob, HeteroGraphConv
 from tensorflow.keras import Model, layers, Input
 
-def contextual_layer(g, in_feats, h_feats, head):
-    in_feats_shape = in_feats.shape[1]
-    h = conv.GATConv(in_feats_shape, h_feats, head)(g, in_feats)
-    return h
+# def contextual_layer(g, in_feats, h_feats, head):
+#     in_feats_shape = in_feats.shape[1]
+#     h = conv.GATConv(in_feats_shape, h_feats, head)(g, in_feats)
+#     return h
 
 class contextual_layers(Model):
     def __init__(self, in_feats, h_feats, **kwarg):
