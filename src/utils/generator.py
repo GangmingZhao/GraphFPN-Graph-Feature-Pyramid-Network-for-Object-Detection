@@ -54,7 +54,6 @@ def hetero_add_edges(g, u, v, edges):
 
 
 def hetero_add_n_feature(g, name_n_feature, indice_node, val):
-    # assert val.shape == g.nodes['n'][0].shape, "val added shape is not the same as the node dimension"
     g.nodes['n'].data[name_n_feature][indice_node]= val
     return g
 
