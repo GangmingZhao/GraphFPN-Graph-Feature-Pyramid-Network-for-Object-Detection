@@ -101,3 +101,14 @@ import networkx as nx
 # # 在user类型的节点和click类型的边上随机生成训练集的掩码
 # hetero_graph.nodes['user'].data['train_mask'] = tf.zeros(n_users, dtype=tf.bool)
 # hetero_graph.edges['click'].data['train_mask'] = tf.zeros(n_clicks, dtype=tf.bool)
+
+# Case 2: Unidirectional bipartite graph
+u = [0, 1, 0, 0, 1]
+v = [0, 1, 2, 3, 2]
+g = dgl.heterograph({('A', 'r', 'B'): (u, v), ('A', 'h', 'B'): (u, v)})
+# with tf.device("CPU:0"):
+u_feat = tf.convert_to_tensor(np.random.rand(2, 5))
+v_feat = tf.convert_to_tensor(np.random.rand(4, 10))
+gatconv = GATConv((5,10), 2, 3)
+res = gatconv(g, (u_feat, v_feat))
+print(res)

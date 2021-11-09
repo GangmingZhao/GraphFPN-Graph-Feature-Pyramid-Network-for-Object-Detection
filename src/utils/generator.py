@@ -28,19 +28,33 @@ def stochastic_create_edges(g, n_edges = 0):
 
 def heterograph():
     graph_data = {
-        ('S1', 'contextual', 'S1'): (tf.constant([0]), tf.constant([1])),
-        ('S2', 'contextual', 'S2'): (tf.constant([0]), tf.constant([1])),
-        ('S3', 'contextual', 'S3'): (tf.constant([0]), tf.constant([1])),
-        ('S4', 'contextual', 'S4'): (tf.constant([0]), tf.constant([1])),
-        ('S5', 'contextual', 'S5'): (tf.constant([0]), tf.constant([1])),
+        ('n', 'contextual', 'n'): (tf.constant([0]), tf.constant([1])),
+        ('n', 'hierarchical', 'n'): (tf.constant([0]), tf.constant([1]))
         }
-    
     return dgl.to_bidirected(dgl.heterograph(graph_data))
+
+
+def hetero_add_edges(g, u, v, edges):
+    if isinstance(u,int):
+        g.add_edges(tf.constant([u]), tf.constant([v]), etype = edges)
+    else:
+        g.add_edges(tf.constant(u), tf.constant(v), etype = edges)
+    return dgl.to_bidirected(g)
+
+def hetero_add_n_feature(g):
+    g.nodes['n'].data['x'] = tf.ones([g.num_nodes(), 4]) # n_feature = 4
+    return g
+
+def hetero_subgraph(g):
+    g.add
 
 
 if __name__ == "__main__":
     g = heterograph()
-    print(g.edges(etype = ('S1', 'contextual', 'S1')))
+    print(g.edges(etype = "contextual"))
+    g = hetero_add_edges(g, 0, 2, "contextual")
+    print(g.edges(etype = "contextual"))
+    # print(g.ndata["x"][0])
     
 
     # starttime = datetime.datetime.now()
