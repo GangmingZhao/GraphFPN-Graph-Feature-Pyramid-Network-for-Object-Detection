@@ -110,30 +110,30 @@ class AnchorTarget(object):
         anchor_iou_max = tf.reduce_max(overlaps, axis=[1])
         
         labels = tf.where(anchor_iou_max < self.neg_iou_thr, 
-                          tf.zeros(anchors.shape[0], dtype=tf.int32), labels)
+                          tf.zeros(anchors.shape[0], dtype=tf.int32), labels)  # negative anchor are assigned 0 in labels
 
         # Filter invalid anchors
         labels = tf.where(tf.equal(valid_flags, 1), 
-                          labels, -tf.ones(anchors.shape[0], dtype=tf.int32))
+                          labels, -tf.ones(anchors.shape[0], dtype=tf.int32))  # invalid anchor are assigned -1 in labels
 
         # 2. Set anchors with high overlap as positive.
         labels = tf.where(anchor_iou_max >= self.pos_iou_thr, 
-                          tf.ones(anchors.shape[0], dtype=tf.int32), labels)
+                          tf.ones(anchors.shape[0], dtype=tf.int32), labels)   # anchor with high overlap IoU are assigned 1
 
         # 3. Set an anchor for each GT box (regardless of IoU value).        
         gt_iou_argmax = tf.argmax(overlaps, axis=0)
-        labels = tf.tensor_scatter_nd_update(labels, 
+        labels = tf.tensor_scatter_nd_update(labels,                           # anchor which havs maximum IoU are also ssigned 1 
                                              tf.reshape(gt_iou_argmax, (-1, 1)), 
                                              tf.ones(gt_iou_argmax.shape, dtype=tf.int32))
         
         # Subsample to balance positive and negative anchors
         # Don't let positives be more than half the anchors
-        ids = tf.where(tf.equal(labels, 1))
+        ids = tf.where(tf.equal(labels, 1))     # number of positive samples
         extra = ids.shape.as_list()[0] - int(self.num_rpn_deltas * self.positive_fraction)
         if extra > 0:
             # Reset the extra ones to neutral
             ids = tf.random.shuffle(ids)[:extra]
-            labels = tf.tensor_scatter_nd_update(labels, 
+            labels = tf.tensor_scatter_nd_update(labels,                        # extra positive anchors are assigned -1
                                                  ids, 
                                                  -tf.ones(ids.shape[0], dtype=tf.int32))
         # Same for negative proposals

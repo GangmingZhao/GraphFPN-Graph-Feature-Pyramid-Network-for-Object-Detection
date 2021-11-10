@@ -52,6 +52,7 @@ class AnchorGenerator(object):
         
         return anchors, valid_flags
     
+    # Determine if an anchor is out of bounds based on its center
     def _generate_valid_flags(self, anchors, img_shape):
         '''
         Args
@@ -74,6 +75,7 @@ class AnchorGenerator(object):
         
         return valid_flags
     
+
     def _generate_level_anchors(self, level, feature_shape):
         '''Generate the anchors given the spatial shape of feature map.
         
@@ -91,11 +93,11 @@ class AnchorGenerator(object):
         
         # Get all combinations of scales and ratios
         scales, ratios = tf.meshgrid([float(scale)], ratios)
-        scales = tf.reshape(scales, [-1])
+        scales = tf.reshape(scales, [-1])                   # Turn scale/ratios into a one-dimensional vector
         ratios = tf.reshape(ratios, [-1])
         
         # Enumerate heights and widths from scales and ratios
-        heights = scales / tf.sqrt(ratios)
+        heights = scales / tf.sqrt(ratios)                  # keep the area Unchanged
         widths = scales * tf.sqrt(ratios) 
 
         # Enumerate shifts in feature space
