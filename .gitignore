@@ -130,3 +130,6 @@ dmypy.json
 
 # MacBook file
 *.DS_Store
+
+# COCO
+COCO2017/
