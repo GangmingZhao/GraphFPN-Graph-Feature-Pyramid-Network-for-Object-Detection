@@ -11,7 +11,7 @@ while not src_dir.endswith("src"):
 if src_dir not in sys.path:
     sys.path.append(src_dir)
 
-from model.Graph import *
+from ..models.graph.Graph import *
 
 def stochastic_create_edges(g, n_edges = 0):
     assert n_edges>g.num_nodes(), "number of edges is smaller than that of nodes"
