@@ -136,4 +136,4 @@ COCO/
 data_demo/
 
 # checkpoints
-checkpoints/
+# checkpoints/
