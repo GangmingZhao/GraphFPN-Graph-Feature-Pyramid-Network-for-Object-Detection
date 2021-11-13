@@ -1,5 +1,6 @@
 import os,sys
 import numpy as np
+import zipfile
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import tensorflow_datasets as tfds
@@ -17,8 +18,17 @@ from model.network import DecodePredictions
 from configs.configs import parse_configs
 config = parse_configs()
     
+def get_demo_data():
+    url = "https://github.com/srihari-humbarwadi/datasets/releases/download/v0.1.0/data.zip"
+    filename = os.path.join(os.getcwd(), "data_demo", "data.zip")
+    tf.keras.utils.get_file(filename, url)
+
+    with zipfile.ZipFile(filename, "r") as z_fp:
+        z_fp.extractall("data_demo/")
+
 
 def demo():
+    get_demo_data()
     weights_dir = "data_demo/data"
     resnet50_backbone = get_backbone()
     model = RetinaNet(config.num_classes, resnet50_backbone)
