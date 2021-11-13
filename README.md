@@ -21,8 +21,8 @@ ${ROOT}
 │
 └── data_demo/
     ├── data
-    |     ├── coco
-    |     ├── checkpoint
+    |    ├── coco
+    |    ├── checkpoint
     ├── data.zip
      
 ├── README.md 
