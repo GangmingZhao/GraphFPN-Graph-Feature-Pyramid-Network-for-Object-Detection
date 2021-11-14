@@ -6,12 +6,11 @@ import pdb
 import os, sys
 
 src_dir = os.path.dirname(os.path.realpath(__file__))
-while not src_dir.endswith("src"):
+while not src_dir.endswith("Graph-FPN"):
     src_dir = os.path.dirname(src_dir)
 if src_dir not in sys.path:
     sys.path.append(src_dir)
-
-from ..models.graph.Graph import *
+from model.network import *
 
 def stochastic_create_edges(g, n_edges = 0):
     assert n_edges>g.num_nodes(), "number of edges is smaller than that of nodes"
@@ -35,14 +34,33 @@ def stochastic_create_edges(g, n_edges = 0):
     return dgl.add_reverse_edges(g, copy_ndata = True)
 
 
-def heterograph(name_n_feature, dim_n_feature):
+def cnn_gnn(c3, c4, c5, g):
+    size = np.ones([3, 2])
+    size[0]= c3.shape[1:3]
+    size[1] = c4.shape[1:3]
+    size[2] = c5.shape[1:3]
+    for i in range(size[0][0] * size[0][1]):
+        g = hetero_add_n_feature(g, "pixel", i, c3[i]) 
+    for i in range(size[1][0] * size[1][1]):
+        g = hetero_add_n_feature(g, "pixel", size[1][0] * size[1][1] + i, c4[i]) 
+    for i in range(size[2][0] * size[2][1]):
+        g = hetero_add_n_feature(g, "pixel", size[1][0] * size[1][1] + size[2][0] * size[2][1] + i, c5[i]) 
+    return g
+
+
+
+def heterograph(name_n_feature, dim_n_feature, nb_nodes):
     graph_data = {
         ('n', 'contextual', 'n'): (tf.constant([0, 1]), tf.constant([1, 2])),
         ('n', 'hierarchical', 'n'): (tf.constant([0, 1]), tf.constant([1, 2]))
         }
-    g = dgl.heterograph(graph_data)
-    g.nodes['n'].data[name_n_feature] = tf.ones([g.num_nodes(), dim_n_feature])
-    return dgl.to_bidirected(g, copy_ndata = True)
+    g = dgl.heterograph(graph_data, num_nodes_dict = {'n': nb_nodes})
+    g.nodes['n'].data[name_n_feature] = tf.zeros([g.num_nodes(), dim_n_feature])
+
+    with tf.device("/cpu:0"):
+        g = dgl.to_bidirected(g, copy_ndata = True)
+    g = g.to("/gpu:0")
+    return g
 
 
 def hetero_add_edges(g, u, v, edges):
@@ -53,9 +71,11 @@ def hetero_add_edges(g, u, v, edges):
     return dgl.to_bidirected(g, copy_ndata = True)
 
 
+
 def hetero_add_n_feature(g, name_n_feature, indice_node, val):
     g.nodes['n'].data[name_n_feature][indice_node]= val
     return g
+
 
 
 def hetero_subgraph(g, edges):
@@ -64,7 +84,7 @@ def hetero_subgraph(g, edges):
 
 if __name__ == "__main__":
     dim_h = 3
-    g = heterograph("x", 256)
+    g = heterograph("x", 256, 10)
     subg = hetero_subgraph(g, "hierarchical")
     # print(subg.edges())
     lay1 = contextual_layers(subg.ndata['x'].shape[1], 256)
@@ -75,6 +95,7 @@ if __name__ == "__main__":
 
     subg.apply_nodes(lambda nodes: {'x' : h_out})
     print(g.ndata["x"])
+
 
     # print(subg.edges())
     # print(g.nodes['n'].data['x'])

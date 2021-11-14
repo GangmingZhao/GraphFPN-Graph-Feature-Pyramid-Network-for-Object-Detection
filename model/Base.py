@@ -103,12 +103,20 @@ import networkx as nx
 # hetero_graph.edges['click'].data['train_mask'] = tf.zeros(n_clicks, dtype=tf.bool)
 
 # Case 2: Unidirectional bipartite graph
-u = [0, 1, 0, 0, 1]
-v = [0, 1, 2, 3, 2]
-g = dgl.heterograph({('A', 'r', 'B'): (u, v), ('A', 'h', 'B'): (u, v)})
-# with tf.device("CPU:0"):
-u_feat = tf.convert_to_tensor(np.random.rand(2, 5))
-v_feat = tf.convert_to_tensor(np.random.rand(4, 10))
-gatconv = GATConv((5,10), 2, 3)
-res = gatconv(g, (u_feat, v_feat))
-print(res)
+# u = [0, 1, 0, 0, 1]
+# v = [0, 1, 2, 3, 2]
+# g = dgl.heterograph({('A', 'r', 'B'): (u, v), ('A', 'h', 'B'): (u, v)})
+# # with tf.device("CPU:0"):
+# u_feat = tf.convert_to_tensor(np.random.rand(2, 5))
+# v_feat = tf.convert_to_tensor(np.random.rand(4, 10))
+# gatconv = GATConv((5,10), 2, 3)
+# res = gatconv(g, (u_feat, v_feat))
+# print(res)
+
+a = tf.ones([2, 2, 3])
+h, w = a.shape[0:2]
+name = ["s1", "s2"]
+size = np.ones([3, 2])
+batch_size, size[0]  = a.shape[0], a.shape[1:3]
+print()
+m = 0

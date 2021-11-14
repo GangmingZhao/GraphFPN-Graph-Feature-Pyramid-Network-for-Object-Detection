@@ -1,7 +1,8 @@
 import tensorflow as tf
 import numpy as np
 import os, sys
-from tensorflow import keras
+import dgl
+import pdb
 
 src_dir = os.path.dirname(os.path.realpath(__file__))
 while not src_dir.endswith("Graph-FPN"):
@@ -9,25 +10,24 @@ while not src_dir.endswith("Graph-FPN"):
 if src_dir not in sys.path:
     sys.path.append(src_dir)
 
+from tensorflow import keras
 from detection.utils.anchor import *
 from detection.utils.bbox import *
+from dgl.nn.tensorflow import conv, glob, HeteroGraphConv
 
 """Building the ResNet50 backbone
 RetinaNet uses a ResNet based backbone, using which a feature pyramid network is constructed. In the example we use ResNet50 as the backbone, and return the feature maps at strides 8, 16 and 32."""
 
 
-def get_backbone():
+def get_backbone(number_layers):
     """Builds ResNet50 with pre-trained imagenet weights"""
-    backbone = keras.applications.ResNet50(
-        include_top=False, input_shape=[None, None, 3]
-    )
-    c3_output, c4_output, c5_output = [
-        backbone.get_layer(layer_name).output
-        for layer_name in ["conv3_block4_out", "conv4_block6_out", "conv5_block3_out"]
-    ]
-    return keras.Model(
-        inputs=[backbone.inputs], outputs=[c3_output, c4_output, c5_output]
-    )
+    if number_layers == 50:
+        backbone = keras.applications.ResNet50(include_top=False, input_shape=[None, None, 3], weights = 'imagenet')
+    elif number_layers == 101:
+        backbone = keras.applications.ResNet101(include_top=False, input_shape=[None, None, 3], weights = 'imagenet')
+    c3_output, c4_output, c5_output = [backbone.get_layer(layer_name).output for layer_name in ["conv3_block4_out", "conv4_block6_out", "conv5_block3_out"]]
+    print(c3_output.shape, c4_output.shape, c5_output.shape)
+    return keras.Model(inputs=[backbone.inputs], outputs=[c3_output, c4_output, c5_output])
 
 
 # Building Feature Pyramid Network as a custom layer
@@ -68,6 +68,74 @@ class FeaturePyramid(keras.layers.Layer):
         p7_output = self.conv_c7_3x3(tf.nn.relu(p6_output))
         return p3_output, p4_output, p5_output, p6_output, p7_output
 
+
+class contextual_layers(keras.layers.Layer):
+    def __init__(self, in_feats, h_feats, **kwarg):
+        super().__init__(**kwarg)
+        self.in_feats = in_feats
+        self.gat1 = conv.GATConv(in_feats, h_feats, 1)
+        self.gat2 = conv.GATConv(in_feats, h_feats, 1)
+        self.gat3= conv.GATConv(in_feats, h_feats, 1)
+
+    def call(self, g, in_feat):
+        h = self.gat1(g, in_feat)
+        h = tf.nn.relu(h)
+        h = self.gat2(g, h)
+        h = tf.nn.relu(h)
+        h = self.gat3(g, h)
+        h= tf.squeeze(h)
+        return h
+
+
+class hierarchical_layers(keras.layers.Layer):
+    def __init__(self, in_feats, h_feats, **kwarg):
+        super().__init__(**kwarg)
+        self.in_feats = in_feats
+        self.gat1 = conv.GATConv(in_feats, h_feats, 1)
+        self.gat2 = conv.GATConv(in_feats, h_feats, 1)
+        self.gat3= conv.GATConv(in_feats, h_feats, 1)
+
+    def call(self, g, in_feat):
+        h = self.gat1(g, in_feat)
+        h = tf.nn.relu(h)
+        h = self.gat2(g, h)
+        h = tf.nn.relu(h)
+        h = self.gat3(g, h)
+        h= tf.squeeze(h)
+        return h
+
+
+
+class graph_FeaturePyramid(keras.layers.Layer):
+
+    def __init__(self, g, backbone=None, **kwargs):
+        super(FeaturePyramid, self).__init__(name="FeaturePyramid", **kwargs)
+        self.backbone = backbone if backbone else get_backbone()
+        self.conv_c3_1x1 = keras.layers.Conv2D(256, 1, 1, "same")
+        self.conv_c4_1x1 = keras.layers.Conv2D(256, 1, 1, "same")
+        self.conv_c5_1x1 = keras.layers.Conv2D(256, 1, 1, "same")
+        self.conv_c3_3x3 = keras.layers.Conv2D(256, 3, 1, "same")
+        self.conv_c4_3x3 = keras.layers.Conv2D(256, 3, 1, "same")
+        self.conv_c5_3x3 = keras.layers.Conv2D(256, 3, 1, "same")
+        self.conv_c6_3x3 = keras.layers.Conv2D(256, 3, 2, "same")
+        self.conv_c7_3x3 = keras.layers.Conv2D(256, 3, 2, "same")
+        self.upsample_2x = keras.layers.UpSampling2D(2)
+        self.contextual = contextual_layers(256, 256)
+        self.g = g
+
+    def call(self, images, training=False):
+        c3_output, c4_output, c5_output = self.backbone(images, training=training)
+        p3_output = self.conv_c3_1x1(c3_output)
+        p4_output = self.conv_c4_1x1(c4_output)
+        p5_output = self.conv_c5_1x1(c5_output)
+        p4_output = p4_output + self.upsample_2x(p5_output)
+        p3_output = p3_output + self.upsample_2x(p4_output)
+        p3_output = self.conv_c3_3x3(p3_output)
+        p4_output = self.conv_c4_3x3(p4_output)
+        p5_output = self.conv_c5_3x3(p5_output)
+        p6_output = self.conv_c6_3x3(c5_output)
+        p7_output = self.conv_c7_3x3(tf.nn.relu(p6_output))
+        return p3_output, p4_output, p5_output, p6_output, p7_output
 
 
 # Building the classification and box regression heads.
@@ -208,3 +276,21 @@ class DecodePredictions(tf.keras.layers.Layer):
             self.confidence_threshold,
             clip_boxes=False,
         )
+
+
+if __name__ == '__main__':
+    # Graph construction
+    dim_h = 256
+    g1 = dgl.graph(([0, 0, 0, 0, 0], [1, 2, 3, 4, 5]), num_nodes = 6)
+    g1 = dgl.add_reverse_edges(g1)
+    # load data to graph
+    g1.ndata['x'] = tf.ones((g1.num_nodes(), 256))
+    feature = g1.ndata['x']
+    lay1 = contextual_layers(g1.ndata['x'].shape[1], dim_h)
+    h_out = lay1(g1, feature)
+    # lay1.summary()
+    # h_out = tf.squeeze(h_out)
+    # # print(g1.ndata['x'].shape)
+    # # print(h_out.shape)
+    # features = g1.ndata['x'] = tf.ones((g1.num_nodes(), 256))
+    # model = contextual_layers(g1.ndata['x'].shape[1], dim_h)

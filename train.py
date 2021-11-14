@@ -26,7 +26,7 @@ def main(config):
     learning_rate_fn = tf.optimizers.schedules.PiecewiseConstantDecay(boundaries = config.lr_boundaries, values = config.lr)
 
     # Initializing and compiling model
-    resnet50_backbone = get_backbone()
+    resnet50_backbone = get_backbone(101)
     loss_fn = RetinaNetLoss(config.num_classes)
     model = RetinaNet(config.num_classes, resnet50_backbone)
 

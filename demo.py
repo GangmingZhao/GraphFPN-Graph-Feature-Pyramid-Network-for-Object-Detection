@@ -1,6 +1,7 @@
 import os,sys
 import numpy as np
 import zipfile
+import pdb
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import tensorflow_datasets as tfds
@@ -30,17 +31,16 @@ def get_demo_data():
 def demo():
     get_demo_data()
     weights_dir = "data_demo/data"
-    resnet50_backbone = get_backbone()
+    resnet50_backbone = get_backbone(50)
     model = RetinaNet(config.num_classes, resnet50_backbone)
     # fine_tune_checkpoint_type
     ckpt = tf.train.Checkpoint(model)
     ckpt.restore(tf.train.latest_checkpoint(weights_dir)).expect_partial()
 
-    # Building inference model
+    # Building inference model 
     image = tf.keras.Input(shape=[None, None, 3], name="image")
     predictions = model(image, training=False)
-    detections = DecodePredictions(confidence_threshold=0.5)(
-        image, predictions)
+    detections = DecodePredictions(confidence_threshold=0.5)(image, predictions)
     inference_model = tf.keras.Model(inputs=image, outputs=detections)
     # inference_model.summary()
 
