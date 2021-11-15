@@ -26,9 +26,9 @@ def main(config):
     learning_rate_fn = tf.optimizers.schedules.PiecewiseConstantDecay(boundaries = config.lr_boundaries, values = config.lr)
 
     # Initializing and compiling model
-    resnet50_backbone = get_backbone(101)
+    resnet101_backbone = get_backbone(101)
     loss_fn = RetinaNetLoss(config.num_classes)
-    model = RetinaNet(config.num_classes, resnet50_backbone)
+    model = RetinaNet(config.num_classes, resnet101_backbone)
 
     optimizer = tf.optimizers.SGD(learning_rate=learning_rate_fn, momentum=0.9)
     model.compile(loss=loss_fn, optimizer=optimizer)
