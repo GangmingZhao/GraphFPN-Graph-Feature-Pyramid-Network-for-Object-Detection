@@ -11,6 +11,7 @@ if src_dir not in sys.path:
     sys.path.append(src_dir)
 
 from tensorflow import keras
+from detection.utils.generator import heterograph, cnn_gnn, hetero_subgraph
 from detection.utils.anchor import *
 from detection.utils.bbox import *
 from dgl.nn.tensorflow import conv, glob, HeteroGraphConv
@@ -26,7 +27,7 @@ def get_backbone(number_layers):
     elif number_layers == 101:
         backbone = keras.applications.ResNet101(include_top=False, input_shape=[None, None, 3], weights = 'imagenet')
     c3_output, c4_output, c5_output = [backbone.get_layer(layer_name).output for layer_name in ["conv3_block4_out", "conv4_block6_out", "conv5_block3_out"]]
-    print(c3_output.shape, c4_output.shape, c5_output.shape)
+    # print(c3_output.shape, c4_output.shape, c5_output.shape)
     return keras.Model(inputs=[backbone.inputs], outputs=[c3_output, c4_output, c5_output])
 
 
@@ -108,7 +109,7 @@ class hierarchical_layers(keras.layers.Layer):
 
 class graph_FeaturePyramid(keras.layers.Layer):
 
-    def __init__(self, g, backbone=None, **kwargs):
+    def __init__(self, backbone=None, **kwargs):
         super(FeaturePyramid, self).__init__(name="FeaturePyramid", **kwargs)
         self.backbone = backbone if backbone else get_backbone()
         self.conv_c3_1x1 = keras.layers.Conv2D(256, 1, 1, "same")
@@ -121,10 +122,16 @@ class graph_FeaturePyramid(keras.layers.Layer):
         self.conv_c7_3x3 = keras.layers.Conv2D(256, 3, 2, "same")
         self.upsample_2x = keras.layers.UpSampling2D(2)
         self.contextual = contextual_layers(256, 256)
-        self.g = g
+        self.hierarchical = hierarchical_layers(256, 256)
+        self.g = heterograph("pixel", 256, 1200)
+        self.subg_h = hetero_subgraph(self.g, "hierarchical")
+        self.subg_c = hetero_subgraph(self.g, "contextual")
+
 
     def call(self, images, training=False):
         c3_output, c4_output, c5_output = self.backbone(images, training=training)
+        g = cnn_gnn(c3_output, c4_output, c5_output, self.g)
+        self.contextual(g)
         p3_output = self.conv_c3_1x1(c3_output)
         p4_output = self.conv_c4_1x1(c4_output)
         p5_output = self.conv_c5_1x1(c5_output)

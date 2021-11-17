@@ -113,7 +113,9 @@ def preprocess_data(sample):
 
 def prepare_image(image):
     image, _, ratio = resize_and_pad_image(image, jitter=None)
+    print(image.shape)
     image = tf.keras.applications.resnet.preprocess_input(image)
+    print(image.shape)
     return tf.expand_dims(image, axis=0), ratio
 
 
