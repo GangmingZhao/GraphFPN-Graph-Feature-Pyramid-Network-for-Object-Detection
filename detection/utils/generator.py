@@ -34,26 +34,7 @@ def stochastic_create_edges(g, n_edges = 0):
     return dgl.add_reverse_edges(g, copy_ndata = True)
 
 
-def hetero_add_n_feature(g, name_n_feature, indice_node, val):
-    g.nodes['n'].data[name_n_feature][indice_node]= val
-    return g
-
-
-def cnn_gnn(c3, c4, c5, g):
-    size = np.ones([3, 2])
-    size[0]= c3.shape[1:3]
-    size[1] = c4.shape[1:3]
-    size[2] = c5.shape[1:3]
-    for i in range(size[0][0] * size[0][1]):
-        g = hetero_add_n_feature(g, "pixel", i, c3[i]) 
-    for i in range(size[1][0] * size[1][1]):
-        g = hetero_add_n_feature(g, "pixel", size[1][0] * size[1][1] + i, c4[i]) 
-    for i in range(size[2][0] * size[2][1]):
-        g = hetero_add_n_feature(g, "pixel", size[1][0] * size[1][1] + size[2][0] * size[2][1] + i, c5[i]) 
-    return g
-
-
-def heterograph(name_n_feature, dim_n_feature, nb_nodes, is_birect = True):
+def heterograph(name_n_feature, dim_n_feature, nb_nodes = 2, is_birect = True):
     graph_data = {
         ('n', 'contextual', 'n'): (tf.constant([0]), tf.constant([1])),
         ('n', 'hierarchical', 'n'): (tf.constant([0]), tf.constant([1]))
@@ -77,7 +58,32 @@ def hetero_add_edges(g, u, v, edges):
     return g
 
 
+def neighbor_9(i, c_shape):
+    return tf.constant([i-c_shape-1, i-c_shape, i-c_shape+1, i-1, i, i+1, i+c_shape-1, i+c_shape, i+c_shape+1])
 
+
+def simple_graph(g):
+    g = g.to("cpu:0")
+    g = dgl.to_simple(g, copy_ndata = True)
+    g = g.to("gpu:0")
+    return g
+
+
+def to_birected(g):
+    with tf.device("/cpu:0"):
+        g = dgl.to_bidirected(g, copy_ndata = True)
+    g = g.to("gpu:0")
+    return g
+
+
+def simple_birected(g):
+    g = g.to("cpu:0")
+    g = dgl.to_simple(g, copy_ndata = True)
+    with tf.device("/cpu:0"):
+        g = dgl.to_bidirected(g, copy_ndata = True)
+    g = g.to("gpu:0")
+    return g
+    
 
 def build_c_edges(g, c3_shape = 28, c4_shape = 14, c5_shape = 7):
     c3_size, c4_size , c5_size= c3_shape * c3_shape, c4_shape * c4_shape, c5_shape * c5_shape
@@ -92,59 +98,47 @@ def build_c_edges(g, c3_shape = 28, c4_shape = 14, c5_shape = 7):
     for i in range(c4_shape - 1):
         g = hetero_add_edges(g, c4[i*c4_shape : (i+1)*c4_shape], c4[(i+1)*c4_shape : (i+2)*c4_shape], 'contextual')          # 14 * 13 = 182 
         g = hetero_add_edges(g, c4[i : (c4_size+i) : c4_shape], c4[i+1 : (c4_size+i+1) : c4_shape], 'contextual') 
-        g = hetero_add_edges(g, c4[i*c4_shape : (i+1)*c4_shape], c3)
+        # g = hetero_add_edges(g, c4[i*c4_shape : (i+1)*c4_shape], c3)
     for i in range(c5_shape - 1):
         g = hetero_add_edges(g, c5[i*c5_shape : (i+1)*c5_shape], c5[(i+1)*c5_shape : (i+2)*c5_shape], 'contextual')          # 6 * 7 = 42
         g = hetero_add_edges(g, c5[i : (c5_size+i) : c5_shape], c5[i+1 : (c5_size+i+1) : c5_shape], 'contextual') 
     
-    return g
+    return simple_graph(g)
 
-def simple_graph(g):
-    return dgl.to_simple(g)
+
+def nodes_update(g, val):
+    g.apply_nodes(lambda nodes: {'pixel' : val})
 
 
 def hetero_subgraph(g, edges):
     return dgl.edge_type_subgraph(g, [edges])
 
 
+def cnn_gnn(g, c):
+    g.ndata["pixel"] = c
+    return g
+
+
+def gnn_cnn(g): 
+    p3 = tf.reshape(g.ndata["pixel"][:784], (1, 28, 28, 256))              # number of pixel in layers p3, 28*28 = 784
+    p4 = tf.reshape(g.ndata["pixel"][784:980], (1, 14, 14, 256))            # number of pixel in layers p4, 14*14 = 196
+    p5 = tf.reshape(g.ndata["pixel"][980:1029], (1, 7, 7, 256))           # number of pixel in layers p4, 14*14 = 196
+    return p3, p4, p5
+
+
 if __name__ == "__main__":
 
     g = heterograph("pixel", 256, 2, is_birect = False)
     
-
-    g = build_c_edges(g)
-    g = simple_graph(g)
-    subh = hetero_subgraph(g, "hierarchical")
-    # print(subh.edges())
-    # print(subh.num_edges())
-    subc = hetero_subgraph(g, "contextual")
-    print(subc.edges())
-    print(subc.num_edges())
-    # a = tf.range(0,16)
-    # print(a[0:16:4])
-    # dim_h = 3
-    # g = heterograph("x", 256, 10)
-    # subg = hetero_subgraph(g, "hierarchical")
-    # # print(subg.edges())
-    # lay1 = contextual_layers(subg.ndata['x'].shape[1], 256)
-
-    # features = subg.ndata['x']
-    # # print(features)
-    # h_out = tf.squeeze(lay1(subg, features))
-
-    # subg.apply_nodes(lambda nodes: {'x' : h_out})
-    # print(g.ndata["x"])
-
-
-    # print(subg.edges())
-    # print(g.nodes['n'].data['x'])
-    # hetero_add_n_feature(g, "x", 0, tf.constant([1,2,3,4]))
-    # print(g.edges(etype = "contextual"))
-    # g = hetero_add_edges(g, 0, 2, "contextual")
-    # print(g.edges(etype = "contextual"))
-    # print(g.ndata["x"][0])
+    # print(g.nodes["n"].data["pixel"][1])
+    # g = dgl.heterograph({('user', 'follows', 'user'): ([0, 1], [1, 2])})
+    # g.nodes['user'].data['h'] = tf.ones((3, 5))
+    # a = tf.zeros(1)
+    # print(g.nodes['user'].data['h'])
+    # g.apply_nodes(lambda nodes: {'h': a }, v = 0, ntype='user')
+    # g.nodes['user'].data['h']
+    # print(g.nodes['user'].data['h'])
     
-
     # starttime = datetime.datetime.now()
     # g1 = dgl.graph(([0], [1]), num_nodes = 4096)
     # g1 = stochastic_create_edges(g1,100000)

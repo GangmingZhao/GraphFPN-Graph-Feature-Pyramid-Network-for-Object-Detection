@@ -83,6 +83,7 @@ class LabelEncoder:
         box_target = box_target / self._box_variance
         return box_target
 
+
     def _encode_sample(self, image_shape, gt_boxes, cls_ids):
         """Creates box and classification targets for a single sample"""
         anchor_boxes = self._anchor_box.get_anchors(image_shape[1], image_shape[2])
@@ -96,6 +97,7 @@ class LabelEncoder:
         cls_target = tf.expand_dims(cls_target, axis=-1)
         label = tf.concat([box_target, cls_target], axis=-1)
         return label
+
 
     def encode_batch(self, batch_images, gt_boxes, cls_ids):
         """Creates box and classification targets for a batch"""

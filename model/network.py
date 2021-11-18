@@ -11,7 +11,7 @@ if src_dir not in sys.path:
     sys.path.append(src_dir)
 
 from tensorflow import keras
-from detection.utils.generator import heterograph, cnn_gnn, hetero_subgraph
+from detection.utils.generator import *
 from detection.utils.anchor import *
 from detection.utils.bbox import *
 from dgl.nn.tensorflow import conv, glob, HeteroGraphConv
@@ -23,11 +23,10 @@ RetinaNet uses a ResNet based backbone, using which a feature pyramid network is
 def get_backbone(number_layers):
     """Builds ResNet50 with pre-trained imagenet weights"""
     if number_layers == 50:
-        backbone = keras.applications.ResNet50(include_top=False, input_shape=[None, None, 3], weights = 'imagenet')
+        backbone = keras.applications.ResNet50(include_top=False, input_shape=[224, 224, 3], weights = 'imagenet')
     elif number_layers == 101:
-        backbone = keras.applications.ResNet101(include_top=False, input_shape=[None, None, 3], weights = 'imagenet')
+        backbone = keras.applications.ResNet101(include_top=False, input_shape=[224, 224, 3], weights = 'imagenet')
     c3_output, c4_output, c5_output = [backbone.get_layer(layer_name).output for layer_name in ["conv3_block4_out", "conv4_block6_out", "conv5_block3_out"]]
-    # print(c3_output.shape, c4_output.shape, c5_output.shape)
     return keras.Model(inputs=[backbone.inputs], outputs=[c3_output, c4_output, c5_output])
 
 
@@ -110,7 +109,7 @@ class hierarchical_layers(keras.layers.Layer):
 class graph_FeaturePyramid(keras.layers.Layer):
 
     def __init__(self, backbone=None, **kwargs):
-        super(FeaturePyramid, self).__init__(name="FeaturePyramid", **kwargs)
+        super(graph_FeaturePyramid, self).__init__(name="graph_FeaturePyramid", **kwargs)
         self.backbone = backbone if backbone else get_backbone()
         self.conv_c3_1x1 = keras.layers.Conv2D(256, 1, 1, "same")
         self.conv_c4_1x1 = keras.layers.Conv2D(256, 1, 1, "same")
@@ -121,28 +120,41 @@ class graph_FeaturePyramid(keras.layers.Layer):
         self.conv_c6_3x3 = keras.layers.Conv2D(256, 3, 2, "same")
         self.conv_c7_3x3 = keras.layers.Conv2D(256, 3, 2, "same")
         self.upsample_2x = keras.layers.UpSampling2D(2)
-        self.contextual = contextual_layers(256, 256)
+        self.contextual = contextual_layers(256, 256, name = "contextual")
         self.hierarchical = hierarchical_layers(256, 256)
-        self.g = heterograph("pixel", 256, 1200)
+        self.g = simple_birected(build_c_edges(heterograph("pixel", 256, 1029)))
         self.subg_h = hetero_subgraph(self.g, "hierarchical")
         self.subg_c = hetero_subgraph(self.g, "contextual")
 
 
     def call(self, images, training=False):
         c3_output, c4_output, c5_output = self.backbone(images, training=training)
-        g = cnn_gnn(c3_output, c4_output, c5_output, self.g)
-        self.contextual(g)
+        # Convolutional feature pyramid network
         p3_output = self.conv_c3_1x1(c3_output)
         p4_output = self.conv_c4_1x1(c4_output)
         p5_output = self.conv_c5_1x1(c5_output)
-        p4_output = p4_output + self.upsample_2x(p5_output)
-        p3_output = p3_output + self.upsample_2x(p4_output)
+        # Graph feature pyramid network
+        p3_gnn = tf.reshape(p3_output, [-1, 256])        
+        p4_gnn = tf.reshape(p4_output, [-1, 256])
+        p5_gnn = tf.reshape(p5_output, [-1, 256])
+        p_final = tf.concat([p3_gnn, p4_gnn, p5_gnn], axis = 0)
+        self.g = cnn_gnn(self.g, p_final)
+        nodes_update(self.subg_c, self.contextual(self.subg_c, self.subg_c.ndata["pixel"]))
+        nodes_update(self.subg_c, self.contextual(self.subg_c, self.subg_c.ndata["pixel"]))
+        nodes_update(self.subg_c, self.contextual(self.subg_c, self.subg_c.ndata["pixel"]))
+        # data fusion 
+        p3_gnn, p4_gnn, p5_gnn = gnn_cnn(self.g)
+        p5_output = p5_output + p5_gnn
+        p4_output = p4_output + self.upsample_2x(p5_output) + p4_gnn
+        p3_output = p3_output + self.upsample_2x(p4_output) + p3_gnn
         p3_output = self.conv_c3_3x3(p3_output)
         p4_output = self.conv_c4_3x3(p4_output)
         p5_output = self.conv_c5_3x3(p5_output)
         p6_output = self.conv_c6_3x3(c5_output)
         p7_output = self.conv_c7_3x3(tf.nn.relu(p6_output))
         return p3_output, p4_output, p5_output, p6_output, p7_output
+
+
 
 
 # Building the classification and box regression heads.
@@ -179,7 +191,54 @@ def build_head(output_filters, bias_init):
     return head
 
 
-# Building RetinaNet using a subclassed model
+
+class Graph_RetinaNet(keras.Model):
+    """A subclassed Keras model implementing the RetinaNet architecture.
+
+    Attributes:
+      num_classes: Number of classes in the dataset.
+      backbone: The backbone to build the feature pyramid from.
+        Currently supports ResNet50 only.
+    """
+
+    def __init__(self, num_classes, backbone=None, **kwargs):
+        super().__init__(name="Graph_RetinaNet", **kwargs)
+        self.fpn = graph_FeaturePyramid(backbone)
+        self.num_classes = num_classes
+
+        prior_probability = tf.constant_initializer(-np.log((1 - 0.01) / 0.01))
+        self.cls_head = build_head(9 * num_classes, prior_probability)
+        self.box_head = build_head(9 * 4, "zeros")
+
+    def call(self, image, training=False):
+        features = self.fpn(image, training=training)
+        N = tf.shape(image)[0]
+        cls_outputs = []
+        box_outputs = []
+        for feature in features:
+            box_outputs.append(tf.reshape(self.box_head(feature), [N, -1, 4]))
+            cls_outputs.append(
+                tf.reshape(self.cls_head(feature), [N, -1, self.num_classes])
+            )
+        cls_outputs = tf.concat(cls_outputs, axis=1)
+        box_outputs = tf.concat(box_outputs, axis=1)
+        return tf.concat([box_outputs, cls_outputs], axis=-1)
+
+    def train_step(self, data):
+        x, y = data
+        with tf.GradientTape() as t:
+            y_pred = self(x, training = True)
+            loss = self.compiled_loss(y, y_pred)
+
+        # graph_grad = t.gradient(loss, self.fpn.contextual.trainable_variables)
+        # print(graph_grad)
+        # pdb.set_trace()
+        vars = self.trainable_variables
+        grad = t.gradient(loss, vars)
+        # self.optimizer.apply_gradients((grad, vars) for (grad, vars) in zip(grad, vars) if grad is not None)
+        self.optimizer.apply_gradients(zip(grad, vars))
+        self.compiled_metrics.update_state(y, y_pred)
+        return {m.name: m.result() for m in self.metrics}
 
 
 class RetinaNet(keras.Model):
@@ -213,6 +272,9 @@ class RetinaNet(keras.Model):
         cls_outputs = tf.concat(cls_outputs, axis=1)
         box_outputs = tf.concat(box_outputs, axis=1)
         return tf.concat([box_outputs, cls_outputs], axis=-1)
+
+
+
 
 
 # Implementing a custom layer to decode predictions
