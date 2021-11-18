@@ -1,4 +1,5 @@
 import tensorflow as tf
+import keras.backend as K
 import numpy as np
 import os, sys
 import dgl
@@ -101,7 +102,7 @@ class hierarchical_layers(keras.layers.Layer):
         h = self.gat2(g, h)
         h = tf.nn.relu(h)
         h = self.gat3(g, h)
-        h= tf.squeeze(h)
+        h = tf.squeeze(h)
         return h
 
 
@@ -120,8 +121,8 @@ class graph_FeaturePyramid(keras.layers.Layer):
         self.conv_c6_3x3 = keras.layers.Conv2D(256, 3, 2, "same")
         self.conv_c7_3x3 = keras.layers.Conv2D(256, 3, 2, "same")
         self.upsample_2x = keras.layers.UpSampling2D(2)
-        self.contextual = contextual_layers(256, 256, name = "contextual")
-        self.hierarchical = hierarchical_layers(256, 256)
+        self.contextual = contextual_layers(256, 256)
+        # self.hierarchical = hierarchical_layers(256, 256)
         self.g = simple_birected(build_c_edges(heterograph("pixel", 256, 1029)))
         self.subg_h = hetero_subgraph(self.g, "hierarchical")
         self.subg_c = hetero_subgraph(self.g, "contextual")
@@ -147,6 +148,7 @@ class graph_FeaturePyramid(keras.layers.Layer):
         p5_output = p5_output + p5_gnn
         p4_output = p4_output + self.upsample_2x(p5_output) + p4_gnn
         p3_output = p3_output + self.upsample_2x(p4_output) + p3_gnn
+        p5_output = p5_output 
         p3_output = self.conv_c3_3x3(p3_output)
         p4_output = self.conv_c4_3x3(p4_output)
         p5_output = self.conv_c5_3x3(p5_output)
@@ -226,7 +228,7 @@ class Graph_RetinaNet(keras.Model):
 
     def train_step(self, data):
         x, y = data
-        with tf.GradientTape() as t:
+        with tf.GradientTape(persistent = True) as t:
             y_pred = self(x, training = True)
             loss = self.compiled_loss(y, y_pred)
 
@@ -239,6 +241,8 @@ class Graph_RetinaNet(keras.Model):
         self.optimizer.apply_gradients(zip(grad, vars))
         self.compiled_metrics.update_state(y, y_pred)
         return {m.name: m.result() for m in self.metrics}
+
+
 
 
 class RetinaNet(keras.Model):

@@ -28,11 +28,11 @@ def main(config):
     learning_rate_fn = tf.optimizers.schedules.PiecewiseConstantDecay(boundaries = config.lr_boundaries, values = config.lr)
 
     # Initializing and compiling model
-    resnet101_backbone = get_backbone(50)
+    resnet101_backbone = get_backbone(101)
     loss_fn = RetinaNetLoss(config.num_classes)
     model = Graph_RetinaNet(config.num_classes, resnet101_backbone)
 
-    optimizer = tf.optimizers.SGD(learning_rate=learning_rate_fn, momentum=0.9)
+    optimizer = tf.optimizers.Adam(learning_rate=learning_rate_fn)
     model.compile(loss=loss_fn, optimizer=optimizer, run_eagerly = True)           # Only can be run eagerly cuz the Mapping between CNN GNN
 
     # Load the COCO2017 dataset using TensorFlow Datasets
@@ -60,7 +60,7 @@ def main(config):
         save_freq=freq
         )
     ]
-
+    
     model.fit(
         train_dataset,
         validation_data=val_dataset,
