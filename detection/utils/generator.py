@@ -4,6 +4,7 @@ import dgl
 import datetime
 import pdb
 import os, sys
+import keras.backend as K
 
 src_dir = os.path.dirname(os.path.realpath(__file__))
 while not src_dir.endswith("Graph-FPN"):
@@ -62,6 +63,14 @@ def neighbor_9(i, c_shape):
     return tf.constant([i-c_shape-1, i-c_shape, i-c_shape+1, i-1, i, i+1, i+c_shape-1, i+c_shape, i+c_shape+1])
 
 
+def neighbor_25(i, c_shape):
+    return tf.constant([i-2*c_shape-2, i-2*c_shape-1, i-2*c_shape, i-2*c_shape+1, i-2*c_shape+2,
+                        i-c_shape-2, i-c_shape-1, i-c_shape, i-c_shape+1, i-c_shape+2, 
+                        i-2, i-1, i, i+1, i+2, 
+                        i+c_shape-2, i+c_shape-1, i+c_shape, i+c_shape+1, i+c_shape+2,
+                        i+2*c_shape-2, i+2*c_shape-1, i+2*c_shape, i+2*c_shape+1, i+2*c_shape+2])
+
+
 def simple_graph(g):
     g = g.to("cpu:0")
     g = dgl.to_simple(g, copy_ndata = True)
@@ -85,13 +94,13 @@ def simple_birected(g):
     return g
     
 
-def build_c_edges(g, c3_shape = 28, c4_shape = 14, c5_shape = 7):
+def build_edges(g, c3_shape = 28, c4_shape = 14, c5_shape = 7):
     c3_size, c4_size , c5_size= c3_shape * c3_shape, c4_shape * c4_shape, c5_shape * c5_shape
     c3 = tf.range(0, c3_size)
     c4 = tf.range(c3_size, c3_size + c4_size)   
     c5 = tf.range(c3_size + c4_size, c3_size + c4_size + c5_size)
     
-    # build contextual and hierarchical edges
+    # build contextual edges
     for i in range(c3_shape - 1):
         g = hetero_add_edges(g, c3[i*c3_shape : (i+1)*c3_shape], c3[(i+1)*c3_shape : (i+2)*c3_shape], 'contextual')          # build edges between different rows (27 * 28 = 756)
         g = hetero_add_edges(g, c3[i : (c3_size+i) : c3_shape], c3[i+1 : (c3_size+i+1) : c3_shape], 'contextual')            # build edges between different column (27 * 28 = 756)
@@ -103,7 +112,44 @@ def build_c_edges(g, c3_shape = 28, c4_shape = 14, c5_shape = 7):
         g = hetero_add_edges(g, c5[i*c5_shape : (i+1)*c5_shape], c5[(i+1)*c5_shape : (i+2)*c5_shape], 'contextual')          # 6 * 7 = 42
         g = hetero_add_edges(g, c5[i : (c5_size+i) : c5_shape], c5[i+1 : (c5_size+i+1) : c5_shape], 'contextual') 
     
-    return simple_graph(g)
+    # build hierarchical edges
+    c3_stride = tf.reshape(c3, (c3_shape, c3_shape))[2:c3_shape:2, 2:c3_shape:2]  # Get pixel indices in C3 for build hierarchical edges
+    c4_stride = tf.reshape(c4, (c4_shape, c4_shape))[2:c4_shape:2, 2:c4_shape:2]
+    c5_stride = tf.reshape(c3, (c3_shape, c3_shape))[2:c3_shape-4:4, 2:c3_shape-4:4]
+    
+
+    
+    # Edges between c3 and c4
+    counter = 1
+    for i in tf.reshape(c3_stride, [-1]).numpy():
+        c3_9 = neighbor_9(i, c3_shape)
+        g = hetero_add_edges(g, c3_9, c4[counter], 'hierarchical') 
+        if counter % (c4_shape-1) == 0 :
+            counter += 2 
+        else:
+            counter += 1
+
+    # Edges between c4 and c5
+    counter = 1
+    for i in tf.reshape(c4_stride, [-1]).numpy():
+
+        c4_9 = neighbor_9(i, c4_shape)
+        g = hetero_add_edges(g, c4_9, c5[counter], 'hierarchical') 
+        if counter % (c5_shape-1) == 0 :
+            counter += 2 
+        else:
+            counter += 1
+    
+    # Edges between c3 and c5
+    counter = 1
+    for i in tf.reshape(c5_stride, [-1]).numpy():
+        c5_9 = neighbor_25(i, c3_shape)
+        g = hetero_add_edges(g, c5_9, c5[counter], 'hierarchical') 
+        if counter % (c5_shape-1) == 0 :
+            counter += 2 
+        else:
+            counter += 1
+    return g
 
 
 def nodes_update(g, val):
@@ -128,8 +174,12 @@ def gnn_cnn(g):
 
 if __name__ == "__main__":
 
-    g = heterograph("pixel", 256, 2, is_birect = False)
-    
+    g = heterograph("pixel", 256, 1029, is_birect = False)
+    g = build_edges(g)
+    print(g.num_edges(etype = "hierarchical"))
+    # c3 = tf.reshape(tf.range(0, 28*28), (28, 28))
+    # c3_stride = c3[2:28:2, 2:28:2]
+    # print(c3_stride)
     # print(g.nodes["n"].data["pixel"][1])
     # g = dgl.heterograph({('user', 'follows', 'user'): ([0, 1], [1, 2])})
     # g.nodes['user'].data['h'] = tf.ones((3, 5))
