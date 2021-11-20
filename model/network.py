@@ -14,7 +14,7 @@ if src_dir not in sys.path:
     sys.path.append(src_dir)
 
 from tensorflow import keras
-from detection.utils.generator import *
+from detection.utils.graph import *
 from detection.utils.anchor import *
 from detection.utils.bbox import *
 from dgl.nn.tensorflow import conv, glob
@@ -73,12 +73,35 @@ class FeaturePyramid(keras.layers.Layer):
 
 
 class channel_attention(keras.layers.Layer):
-    def __init__(self, in_feats, h_feats, **kwarg):
+    def __init__(self, etype,**kwarg):
         super().__init__(**kwarg)
-        self.in_feats = in_feats
-        self.pool1 = glob.AvgPooling()
-        self.fc1 = keras.layers.dense(activation = "sigmoid")
+        self.etype = etype
+        self.pool1 = avg_pool_local
+        self.fc1 = keras.layers.Dense(256, activation = "sigmoid")
+         
+    def call(self, g, h):
+        a = self.pool1(g, self.etype)
+        h = tf.squeeze(h)
+        h = tf.math.multiply(h, a)
+        return h
 
+
+# class contextual_layers(keras.layers.Layer):
+#     def __init__(self, in_feats, h_feats, **kwarg):
+#         super().__init__(**kwarg)
+#         self.in_feats = in_feats
+#         self.gat1 = conv.GATConv(in_feats, h_feats, 1)
+#         self.cha2 = channel_attention("contextual")
+#         self.gat3= conv.GATConv(in_feats, h_feats, 1)
+
+#     def call(self, g, in_feat):
+#         h = self.gat1(g, in_feat)
+#         h = tf.nn.relu(h)
+#         h = self.cha2(g, h)
+#         h = tf.nn.relu(h)
+#         h = self.gat3(g, h)
+#         h= tf.squeeze(h)
+#         return h
 
 class contextual_layers(keras.layers.Layer):
     def __init__(self, in_feats, h_feats, **kwarg):
@@ -96,23 +119,6 @@ class contextual_layers(keras.layers.Layer):
         h = self.gat3(g, h)
         h= tf.squeeze(h)
         return h
-
-# class contextual_layers(keras.layers.Layer):
-#     def __init__(self, in_feats, h_feats, **kwarg):
-#         super().__init__(**kwarg)
-#         self.in_feats = in_feats
-#         self.gat1 = conv.GATConv(in_feats, h_feats, 1)
-#         self.gat2 = conv.GATConv(in_feats, h_feats, 1)
-#         self.gat3= conv.GATConv(in_feats, h_feats, 1)
-
-#     def call(self, g, in_feat):
-#         h = self.gat1(g, in_feat)
-#         h = tf.nn.relu(h)
-#         h = self.gat2(g, h)
-#         h = tf.nn.relu(h)
-#         h = self.gat3(g, h)
-#         h= tf.squeeze(h)
-#         return h
 
 
 class hierarchical_layers(keras.layers.Layer):
@@ -395,16 +401,14 @@ class DecodePredictions(tf.keras.layers.Layer):
 if __name__ == '__main__':
     # Graph construction
     dim_h = 256
-    g1 = dgl.graph(([0, 0, 0, 0, 0], [1, 2, 3, 4, 5]), num_nodes = 6)
+    g1 = dgl.graph(([0, 0, 0, 0, 0], [1, 2, 3, 4, 5]), num_nodes = 100)
     g1 = dgl.add_reverse_edges(g1)
     # load data to graph
-    g1.ndata['x'] = tf.ones((g1.num_nodes(), 256))
-    feature = g1.ndata['x']
-    lay1 = contextual_layers(g1.ndata['x'].shape[1], dim_h)
-    h_out = lay1(g1, feature)
-    # lay1.summary()
-    # h_out = tf.squeeze(h_out)
-    # # print(g1.ndata['x'].shape)
-    # # print(h_out.shape)
-    # features = g1.ndata['x'] = tf.ones((g1.num_nodes(), 256))
-    # model = contextual_layers(g1.ndata['x'].shape[1], dim_h)
+    g1.ndata['x'] = tf.ones((g1.num_nodes(), 2))
+    print(g1.ndata)
+    h = tf.constant([[100.0 ,50.0]])
+    g1.apply_nodes(lambda nodes: {'x' : h}, v=0)
+    print(g1.ndata)
+    # lay1 = glob.AvgPooling()
+    # h_out = lay1(g1, g1.ndata['x'])
+    # print(h_out)

@@ -1,4 +1,5 @@
 from dgl.batch import unbatch
+from networkx.drawing.nx_pylab import apply_alpha
 import tensorflow as tf
 import numpy as np
 import dgl
@@ -93,6 +94,17 @@ def simple_birected(g):
         g = dgl.to_bidirected(g, copy_ndata = True)
     g = g.to("gpu:0")
     return g
+
+
+# local pooling based on neighbor nodes, worked but it slows the training loop
+def avg_pool_local(g, etype):
+    for node in range(g.num_nodes()):
+        _, neighbor = g.out_edges(node, form='uv', etype = etype)  # return srcnodes and dstnodes
+        neighbor_data = tf.gather(g.ndata["pixel"], neighbor)
+        mean = tf.expand_dims(tf.reduce_mean(neighbor_data, axis = 0), axis = 0)
+        g.apply_nodes(lambda nodes: {'pixel' : mean}, v = node)
+    return g.ndata["pixel"]
+        
     
 
 def build_edges(g, c3_shape = 28, c4_shape = 14, c5_shape = 7):
@@ -176,22 +188,15 @@ def gnn_cnn(g):
 if __name__ == "__main__":
 
     g = heterograph("pixel", 256, 1029, is_birect = False)
-    g = build_edges(g)
-    g.set_batch_num_nodes(tf.constant([8, 1020]))
-    # c3 = tf.reshape(tf.range(0, 28*28), (28, 28))
-    # c3_stride = c3[2:28:2, 2:28:2]
-    # print(c3_stride)
-    # print(g.nodes["n"].data["pixel"][1])
-    # g = dgl.heterograph({('user', 'follows', 'user'): ([0, 1], [1, 2])})
-    # g.nodes['user'].data['h'] = tf.ones((3, 5))
-    # a = tf.zeros(1)
-    # print(g.nodes['user'].data['h'])
-    # g.apply_nodes(lambda nodes: {'h': a }, v = 0, ntype='user')
-    # g.nodes['user'].data['h']
-    # print(g.nodes['user'].data['h'])
+    g = simple_birected(build_edges(g))
+    g.ndata["pixel"] = tf.random.uniform([g.num_nodes(), 256], minval=-10, maxval=10)
+    print(g.ndata["pixel"])
+    g = avg_pool_local(g, etype = "contextual")
+    print(g.ndata["pixel"])
     
     # starttime = datetime.datetime.now()
     # g1 = dgl.graph(([0], [1]), num_nodes = 4096)
+
     # g1 = stochastic_create_edges(g1,100000)
     # endtime = datetime.datetime.now()
     # print((endtime - starttime).seconds)
