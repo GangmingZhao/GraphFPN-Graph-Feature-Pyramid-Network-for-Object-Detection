@@ -5,6 +5,8 @@ import os, sys
 import dgl
 import pdb
 
+from tensorflow.python.ops.gen_math_ops import Sigmoid
+
 src_dir = os.path.dirname(os.path.realpath(__file__))
 while not src_dir.endswith("Graph-FPN"):
     src_dir = os.path.dirname(src_dir)
@@ -15,7 +17,7 @@ from tensorflow import keras
 from detection.utils.generator import *
 from detection.utils.anchor import *
 from detection.utils.bbox import *
-from dgl.nn.tensorflow import conv, glob, HeteroGraphConv
+from dgl.nn.tensorflow import conv, glob
 
 """Building the ResNet50 backbone
 RetinaNet uses a ResNet based backbone, using which a feature pyramid network is constructed. In the example we use ResNet50 as the backbone, and return the feature maps at strides 8, 16 and 32."""
@@ -70,6 +72,14 @@ class FeaturePyramid(keras.layers.Layer):
         return p3_output, p4_output, p5_output, p6_output, p7_output
 
 
+class channel_attention(keras.layers.Layer):
+    def __init__(self, in_feats, h_feats, **kwarg):
+        super().__init__(**kwarg)
+        self.in_feats = in_feats
+        self.pool1 = glob.AvgPooling()
+        self.fc1 = keras.layers.dense(activation = "sigmoid")
+
+
 class contextual_layers(keras.layers.Layer):
     def __init__(self, in_feats, h_feats, **kwarg):
         super().__init__(**kwarg)
@@ -86,6 +96,23 @@ class contextual_layers(keras.layers.Layer):
         h = self.gat3(g, h)
         h= tf.squeeze(h)
         return h
+
+# class contextual_layers(keras.layers.Layer):
+#     def __init__(self, in_feats, h_feats, **kwarg):
+#         super().__init__(**kwarg)
+#         self.in_feats = in_feats
+#         self.gat1 = conv.GATConv(in_feats, h_feats, 1)
+#         self.gat2 = conv.GATConv(in_feats, h_feats, 1)
+#         self.gat3= conv.GATConv(in_feats, h_feats, 1)
+
+#     def call(self, g, in_feat):
+#         h = self.gat1(g, in_feat)
+#         h = tf.nn.relu(h)
+#         h = self.gat2(g, h)
+#         h = tf.nn.relu(h)
+#         h = self.gat3(g, h)
+#         h= tf.squeeze(h)
+#         return h
 
 
 class hierarchical_layers(keras.layers.Layer):

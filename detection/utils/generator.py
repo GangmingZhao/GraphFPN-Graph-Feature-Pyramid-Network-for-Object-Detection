@@ -1,3 +1,4 @@
+from dgl.batch import unbatch
 import tensorflow as tf
 import numpy as np
 import dgl
@@ -176,7 +177,7 @@ if __name__ == "__main__":
 
     g = heterograph("pixel", 256, 1029, is_birect = False)
     g = build_edges(g)
-    print(g.num_edges(etype = "hierarchical"))
+    g.set_batch_num_nodes(tf.constant([8, 1020]))
     # c3 = tf.reshape(tf.range(0, 28*28), (28, 28))
     # c3_stride = c3[2:28:2, 2:28:2]
     # print(c3_stride)
