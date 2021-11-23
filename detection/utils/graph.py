@@ -1,5 +1,3 @@
-from dgl.batch import unbatch
-from networkx.drawing.nx_pylab import apply_alpha
 import tensorflow as tf
 import numpy as np
 import dgl
@@ -7,6 +5,7 @@ import datetime
 import pdb
 import os, sys
 import keras.backend as K
+from dgl.nn.tensorflow import glob
 
 src_dir = os.path.dirname(os.path.realpath(__file__))
 while not src_dir.endswith("Graph-FPN"):
@@ -100,10 +99,20 @@ def simple_birected(g):
 def avg_pool_local(g, etype):
     for node in range(g.num_nodes()):
         _, neighbor = g.out_edges(node, form='uv', etype = etype)  # return srcnodes and dstnodes
-        neighbor_data = tf.gather(g.ndata["pixel"], neighbor)
-        mean = tf.expand_dims(tf.reduce_mean(neighbor_data, axis = 0), axis = 0)
-        g.apply_nodes(lambda nodes: {'pixel' : mean}, v = node)
-    return g.ndata["pixel"]
+        # local_g = g.out_subgraph({"n" : [node]})
+        local_g = dgl.node_subgraph(g, neighbor)
+        # print(local_g.ndata["pixel"])
+        pool = glob.AvgPooling()
+        h = pool(local_g, local_g.ndata["pixel"])
+        g.apply_nodes(lambda nodes: {'pixel' : h}, v = node)
+        # h = dgl.nn.tensorflow.glob.AvgPooling(local_g, )
+        # print(h)
+        # pdb.set_trace()
+        # _, neighbor = g.out_edges(node, form='uv', etype = etype)  # return srcnodes and dstnodes
+        # neighbor_data = tf.gather(g.ndata["pixel"], neighbor)
+        # mean = tf.expand_dims(tf.reduce_mean(neighbor_data, axis = 0), axis = 0)
+        # g.apply_nodes(lambda nodes: {'pixel' : mean}, v = node)
+    return g
         
     
 
@@ -188,12 +197,10 @@ def gnn_cnn(g):
 if __name__ == "__main__":
 
     g = heterograph("pixel", 256, 1029, is_birect = False)
-    g = simple_birected(build_edges(g))
+    g = build_edges(g)
     g.ndata["pixel"] = tf.random.uniform([g.num_nodes(), 256], minval=-10, maxval=10)
-    print(g.ndata["pixel"])
-    g = avg_pool_local(g, etype = "contextual")
-    print(g.ndata["pixel"])
-    
+    sub_c = dgl.edge_type_subgraph(g, ["contextual"])
+    g = avg_pool_local(sub_c)
     # starttime = datetime.datetime.now()
     # g1 = dgl.graph(([0], [1]), num_nodes = 4096)
 
