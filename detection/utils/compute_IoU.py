@@ -2,8 +2,6 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import numpy as np
 from .bbox import convert_to_corners
-import pdb
-
 
 
 def compute_iou(boxes1, boxes2):
@@ -38,12 +36,8 @@ def compute_iou(boxes1, boxes2):
     return tf.clip_by_value(intersection_area / union_area, 0.0, 1.0)
 
 
-
-def visualize_detections(
-    image, boxes, classes, scores, ratio_short, ratio_long, figsize=(7, 7), linewidth=1, color=[0, 0, 1]
-):
-    """Visualize Detections"""
-    # Reshape bbox sizes with corresponding ratio depends on original image shape
+def reshape_bbox(image, boxes, ratio_long, ratio_short):
+    """Reshape bboxes to original shape"""
     for i in range(boxes.shape[0]):
         if image.shape[0] < image.shape[1]:
             boxes[i][2] /= ratio_long
@@ -55,6 +49,14 @@ def visualize_detections(
             boxes[i][0] /= ratio_short
             boxes[i][3] /= ratio_long
             boxes[i][1] /= ratio_long
+
+
+def visualize_detections(
+    image, boxes, classes, scores, ratio_short, ratio_long, figsize=(7, 7), linewidth=1, color=[0, 0, 1]
+):
+    """Visualize Detections"""
+    # Reshape bbox sizes with corresponding ratio depends on original image shape
+    reshape_bbox(image, boxes, ratio_long, ratio_short)
     image = np.array(image, dtype=np.uint8)
     plt.figure(figsize=figsize)
     plt.axis("off")

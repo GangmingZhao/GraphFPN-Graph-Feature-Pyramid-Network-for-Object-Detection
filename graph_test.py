@@ -1,5 +1,4 @@
 import os,sys
-import numpy as np
 import tensorflow as tf
 import tensorflow_datasets as tfds
 import datetime
@@ -11,8 +10,8 @@ if src_dir not in sys.path:
     sys.path.append(src_dir)
 
 from detection.utils.Label import *
+from model.network import get_backbone, Graph_RetinaNet, DecodePredictions
 from detection.datasets.coco import COCO, Info
-from model.network import get_backbone, RetinaNet, DecodePredictions
 from model.losses import RetinaNetLoss
 from detection.utils.preprocess import *
 from configs.configs import parse_configs
@@ -22,12 +21,12 @@ config = parse_configs()
 # Setting up training parameters
 
 def test():
-    model_dir = "data_demo/data"
+    model_dir = "checkpoint/"
     (val_dataset, test_dataset), dataset_info = tfds.load("coco/2017", split=["validation", "test"], with_info=True, data_dir="COCO", download = False) 
     int2str = dataset_info.features["objects"]["label"].int2str
-
-    resnet50_backbone = get_backbone(50)
-    model = RetinaNet(config.num_classes, resnet50_backbone)
+    
+    resnet101_backbone = get_backbone(101)
+    model = Graph_RetinaNet(config.num_classes, resnet101_backbone)
     ckpt = tf.train.Checkpoint(model)
     ckpt.restore(tf.train.latest_checkpoint(model_dir)).expect_partial()
     eval_coco = COCO()

@@ -52,15 +52,12 @@ def demo():
         image = tf.cast(sample["image"], dtype=tf.float32)
         input_image, ratio_short, ratio_long = prepare_image(image)
        
-        # input_image, ratio = prepare_image(image)
         detections = inference_model.predict(input_image)
-        # num_detections = detections.valid_detections[0]
         num_detections = detections.valid_detections[0]
         class_names = [int2str(int(x)) for x in detections.nmsed_classes[0][:num_detections]]
         visualize_detections(
             image,
-            # detections.nmsed_boxes[0][:num_detections] / ratio,
-            detections.nmsed_boxes[0][:num_detections] ,
+            detections.nmsed_boxes[0][:num_detections],
             class_names,
             detections.nmsed_scores[0][:num_detections],
             ratio_short, ratio_long

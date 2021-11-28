@@ -113,10 +113,5 @@ import networkx as nx
 # res = gatconv(g, (u_feat, v_feat))
 # print(res)
 
-a = tf.ones([2, 2, 3])
-h, w = a.shape[0:2]
-name = ["s1", "s2"]
-size = np.ones([3, 2])
-batch_size, size[0]  = a.shape[0], a.shape[1:3]
-print()
-m = 0
+a = np.array([0,1])
+print(type(a))

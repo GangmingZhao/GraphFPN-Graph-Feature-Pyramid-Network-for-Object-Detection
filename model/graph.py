@@ -1,8 +1,6 @@
 import tensorflow as tf
 import numpy as np
 import dgl
-import datetime
-import pdb
 import os, sys
 import keras.backend as K
 from dgl.nn.tensorflow import glob
@@ -200,7 +198,7 @@ if __name__ == "__main__":
     g = build_edges(g)
     g.ndata["pixel"] = tf.random.uniform([g.num_nodes(), 256], minval=-10, maxval=10)
     sub_c = dgl.edge_type_subgraph(g, ["contextual"])
-    g = avg_pool_local(sub_c)
+    g = avg_pool_local(sub_c, "contextual")
     # starttime = datetime.datetime.now()
     # g1 = dgl.graph(([0], [1]), num_nodes = 4096)
 

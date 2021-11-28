@@ -99,7 +99,6 @@ def pipeline(dataset, batch_size):
     Apply the preprocessing function to the samples
     Create batches with fixed batch size. Since images in the batch can have different dimensions, and can also have different number of objects, we use padded_batch to the add the necessary padding to create rectangular tensors
     Create targets for each sample in the batch using LabelEncoder"""
-
     autotune = tf.data.AUTOTUNE                                                                                  # make sure that number of files readed is bigger or equal than batch size
     dataset = dataset.map(preprocess_data, num_parallel_calls=autotune)
     dataset = dataset.shuffle(4 * batch_size)                                                                    # randomly samples elements from this buffer

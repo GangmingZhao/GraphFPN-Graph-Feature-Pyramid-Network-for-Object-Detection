@@ -14,7 +14,7 @@ if src_dir not in sys.path:
     sys.path.append(src_dir)
 
 from tensorflow import keras
-from detection.utils.graph import *
+from .graph import *
 from detection.utils.anchor import *
 from detection.utils.bbox import *
 from dgl.nn.tensorflow import conv, glob
@@ -36,13 +36,6 @@ def get_backbone(number_layers):
 # Building Feature Pyramid Network as a custom layer
 
 class FeaturePyramid(keras.layers.Layer):
-    """Builds the Feature Pyramid with the feature maps from the backbone.
-
-    Attributes:
-      num_classes: Number of classes in the dataset.
-      backbone: The backbone to build the feature pyramid from.
-        Currently supports ResNet50 only.
-    """
 
     def __init__(self, backbone=None, **kwargs):
         super(FeaturePyramid, self).__init__(name="FeaturePyramid", **kwargs)
@@ -223,9 +216,7 @@ def build_head(output_filters, bias_init):
     head = keras.Sequential([keras.Input(shape=[None, None, 256])])
     kernel_init = tf.initializers.RandomNormal(0.0, 0.01)
     for _ in range(4):
-        head.add(
-            keras.layers.Conv2D(256, 3, padding="same", kernel_initializer=kernel_init)
-        )
+        head.add(keras.layers.Conv2D(256, 3, padding="same", kernel_initializer=kernel_init))
         head.add(keras.layers.ReLU())
     head.add(
         keras.layers.Conv2D(
@@ -242,13 +233,6 @@ def build_head(output_filters, bias_init):
 
 
 class Graph_RetinaNet(keras.Model):
-    """A subclassed Keras model implementing the RetinaNet architecture.
-
-    Attributes:
-      num_classes: Number of classes in the dataset.
-      backbone: The backbone to build the feature pyramid from.
-        Currently supports ResNet50 only.
-    """
 
     def __init__(self, num_classes, backbone=None, **kwargs):
         super().__init__(name="Graph_RetinaNet", **kwargs)
@@ -266,28 +250,26 @@ class Graph_RetinaNet(keras.Model):
         box_outputs = []
         for feature in features:
             box_outputs.append(tf.reshape(self.box_head(feature), [N, -1, 4]))
-            cls_outputs.append(
-                tf.reshape(self.cls_head(feature), [N, -1, self.num_classes])
-            )
+            cls_outputs.append(tf.reshape(self.cls_head(feature), [N, -1, self.num_classes]))
         cls_outputs = tf.concat(cls_outputs, axis=1)
         box_outputs = tf.concat(box_outputs, axis=1)
         return tf.concat([box_outputs, cls_outputs], axis=-1)
 
-    def train_step(self, data):
-        x, y = data
-        with tf.GradientTape(persistent = True) as t:
-            y_pred = self(x, training = True)
-            loss = self.compiled_loss(y, y_pred)
+    # def train_step(self, data):
+    #     x, y = data
+    #     with tf.GradientTape(persistent = True) as t:
+    #         y_pred = self(x, training = True)
+    #         loss = self.compiled_loss(y, y_pred)
 
-        # graph_grad = t.gradient(loss, self.fpn.contextual.trainable_variables)
-        # print(graph_grad)
-        # pdb.set_trace()
-        vars = self.trainable_variables
-        grad = t.gradient(loss, vars)
-        # self.optimizer.apply_gradients((grad, vars) for (grad, vars) in zip(grad, vars) if grad is not None)
-        self.optimizer.apply_gradients(zip(grad, vars))
-        self.compiled_metrics.update_state(y, y_pred)
-        return {m.name: m.result() for m in self.metrics}
+    #     # graph_grad = t.gradient(loss, self.fpn.contextual.trainable_variables)
+    #     # print(graph_grad)
+    #     # pdb.set_trace()
+    #     vars = self.trainable_variables
+    #     grad = t.gradient(loss, vars)
+    #     # self.optimizer.apply_gradients((grad, vars) for (grad, vars) in zip(grad, vars) if grad is not None)
+    #     self.optimizer.apply_gradients(zip(grad, vars))
+    #     self.compiled_metrics.update_state(y, y_pred)
+    #     return {m.name: m.result() for m in self.metrics}
 
 
 
@@ -398,6 +380,20 @@ class DecodePredictions(tf.keras.layers.Layer):
         )
 
 
+# class test_model(keras.Model):
+
+#     def __init__(self, train_model, decode, **kwargs):
+#         super().__init__(**kwargs)
+#         self.g_retinanet = train_model
+#         self.decode = decode
+        
+#     def call(self, image):
+#             predictions = self.g_retinanet(image)
+#             detections = self.decode(image, predictions)
+#             return detections
+
+
+
 if __name__ == '__main__':
     # Graph construction
     dim_h = 256
@@ -409,6 +405,3 @@ if __name__ == '__main__':
     h = tf.constant([[100.0 ,50.0]])
     g1.apply_nodes(lambda nodes: {'x' : h}, v=0)
     print(g1.ndata)
-    # lay1 = glob.AvgPooling()
-    # h_out = lay1(g1, g1.ndata['x'])
-    # print(h_out)
