@@ -17,11 +17,12 @@ ${ROOT}
 │
 │
 └── data_demo/
-    ├── data
-    |    ├── coco
-    |    ├── checkpoint
-    ├── data.zip
-     
+|   ├── data
+|   |    ├── coco
+|   |    ├── checkpoint
+|   ├── data.zip
+|     
+├── src     
 ├── README.md 
 └── requirements.txt
 ```
