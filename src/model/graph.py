@@ -44,7 +44,7 @@ def heterograph(name_n_feature, dim_n_feature, nb_nodes = 2, is_birect = True):
     if is_birect:
         with tf.device("/cpu:0"):
             g = dgl.to_bidirected(g, copy_ndata = True)
-        g = g.to("/gpu:0")
+        # g = g.to("/gpu:0")
     return g
 
 
@@ -73,14 +73,14 @@ def neighbor_25(i, c_shape):
 def simple_graph(g):
     g = g.to("cpu:0")
     g = dgl.to_simple(g, copy_ndata = True)
-    g = g.to("gpu:0")
+    # g = g.to("gpu:0")
     return g
 
 
 def to_birected(g):
     with tf.device("/cpu:0"):
         g = dgl.to_bidirected(g, copy_ndata = True)
-    g = g.to("gpu:0")
+    # g = g.to("gpu:0")
     return g
 
 
@@ -89,7 +89,7 @@ def simple_birected(g):
     g = dgl.to_simple(g, copy_ndata = True)
     with tf.device("/cpu:0"):
         g = dgl.to_bidirected(g, copy_ndata = True)
-    g = g.to("gpu:0")
+    # g = g.to("gpu:0")
     return g
 
 

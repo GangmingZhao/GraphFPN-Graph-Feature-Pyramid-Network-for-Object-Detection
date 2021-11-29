@@ -380,18 +380,6 @@ class DecodePredictions(tf.keras.layers.Layer):
         )
 
 
-# class test_model(keras.Model):
-
-#     def __init__(self, train_model, decode, **kwargs):
-#         super().__init__(**kwargs)
-#         self.g_retinanet = train_model
-#         self.decode = decode
-        
-#     def call(self, image):
-#             predictions = self.g_retinanet(image)
-#             detections = self.decode(image, predictions)
-#             return detections
-
 
 
 if __name__ == '__main__':
