@@ -21,7 +21,7 @@ def parse_configs():
                         help='Retinanet weight path')
     parser.add_argument('--r101_graph_weight', type=str, default="checkpoint/", metavar='PATH',
                         help='Graph Retinanet weight path')
-    parser.add_argument('--result_dir', type=str, default="result/", metavar='PATH',
+    parser.add_argument('--result_dir', type=str, default=os.path.join(src_dir, "result"), metavar='PATH',
                         help='The ROOT working directory')
     ####################################################################
     ##############     Model configs            ########################

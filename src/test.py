@@ -1,3 +1,4 @@
+import os
 import tensorflow as tf
 import tensorflow_datasets as tfds
 import init_path
@@ -13,7 +14,7 @@ config = parse_configs()
 # Setting up training parameters
 
 def test():
-    (val_dataset, test_dataset), dataset_info = tfds.load("coco/2017", split=["validation", "test"], with_info=True, data_dir="COCO", download = False) 
+    (val_dataset, test_dataset), dataset_info = tfds.load("coco/2017", split=["validation", "test"], with_info=True, data_dir=os.path.join(config.root_dir, "COCO"), download = False) 
     int2str = dataset_info.features["objects"]["label"].int2str
     
     model = models[config.Arch](config.num_classes, backbone[config.backbone])
@@ -45,8 +46,8 @@ def test():
             id = Info()._valid_ids[indice].item()
             class_ids.append(id)
         eval_coco.convert_eval_format(bbox, image_id, class_ids, scores, num_detections, res)
-    eval_coco.save_results("results/", res)
-    eval_coco.run_eval("results/")
+    eval_coco.save_results(config.result_dir, res)
+    eval_coco.run_eval(config.result_dir)
     
 if __name__ == "__main__":
     test()

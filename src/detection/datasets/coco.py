@@ -38,7 +38,7 @@ class Info:
 
 class COCO:
   def __init__(self):
-    self.annot_path = "COCO/downloads/extracted/ZIP.images.cocodat.org_annotat_annotat_trainvaETqDbZAZXuH4hOcE2mME36rs_x8CP0m2ypPEqq5HAmg.zip/annotations/instances_val2017.json"
+    self.annot_path = os.path.join(src_dir, "COCO/downloads/extracted/ZIP.images.cocodat.org_annotat_annotat_trainvaETqDbZAZXuH4hOcE2mME36rs_x8CP0m2ypPEqq5HAmg.zip/annotations/instances_val2017.json")
     self.coco = coco.COCO(self.annot_path)
     self.images = self.coco.getImgIds()
     self.num_samples = len(self.images)
@@ -64,10 +64,10 @@ class COCO:
 
 
   def save_results(self, save_dir, detections):
-    json.dump(detections, open('{}/results.json'.format(save_dir), 'w'))
+    json.dump(detections, open('{}results.json'.format(save_dir), 'w'))
   
   def run_eval(self, save_dir):
-    coco_dets = self.coco.loadRes('{}/results.json'.format(save_dir))
+    coco_dets = self.coco.loadRes('{}results.json'.format(save_dir))
     coco_eval = COCOeval(self.coco, coco_dets, "bbox")
     coco_eval.evaluate()
     coco_eval.accumulate()
