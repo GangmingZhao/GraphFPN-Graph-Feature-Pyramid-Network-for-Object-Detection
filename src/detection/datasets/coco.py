@@ -64,10 +64,10 @@ class COCO:
 
 
   def save_results(self, save_dir, detections):
-    json.dump(detections, open('{}results.json'.format(save_dir), 'w'))
+    json.dump(detections, open('{}/results.json'.format(save_dir.replace('\\', '/')), 'w'))
   
   def run_eval(self, save_dir):
-    coco_dets = self.coco.loadRes('{}results.json'.format(save_dir))
+    coco_dets = self.coco.loadRes('{}/results.json'.format(save_dir.replace('\\', '/')))
     coco_eval = COCOeval(self.coco, coco_dets, "bbox")
     coco_eval.evaluate()
     coco_eval.accumulate()
