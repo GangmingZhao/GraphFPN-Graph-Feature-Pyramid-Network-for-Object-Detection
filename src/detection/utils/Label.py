@@ -61,7 +61,7 @@ class LabelEncoder:
         """
         iou_matrix = compute_iou(anchor_boxes, gt_boxes)
         max_iou = tf.reduce_max(iou_matrix, axis=1)
-        matched_gt_idx = tf.argmax(iou_matrix, axis=1)
+        matched_gt_idx = tf.argmax(iou_matrix, axis=1)   
         positive_mask = tf.greater_equal(max_iou, match_iou)
         negative_mask = tf.less(max_iou, ignore_iou)
         ignore_mask = tf.logical_not(tf.logical_or(positive_mask, negative_mask))
@@ -71,12 +71,12 @@ class LabelEncoder:
             tf.cast(ignore_mask, dtype=tf.float32),
         )
 
-    def _compute_box_target(self, anchor_boxes, matched_gt_boxes):
+    def _compute_box_target(self, anchor_boxes, matched_gt_boxes): 
         """Transforms the ground truth boxes into targets for training"""
         box_target = tf.concat(
             [
-                (matched_gt_boxes[:, :2] - anchor_boxes[:, :2]) / anchor_boxes[:, 2:],
-                tf.math.log(matched_gt_boxes[:, 2:] / anchor_boxes[:, 2:]),
+                (matched_gt_boxes[:, :2] - anchor_boxes[:, :2]) / anchor_boxes[:, 2:],  # (x-x_a) / w_a, (y-y_a) / h_a
+                tf.math.log(matched_gt_boxes[:, 2:] / anchor_boxes[:, 2:]),             # log(w/w_a), long(h/h_a)
             ],
             axis=-1,
         )

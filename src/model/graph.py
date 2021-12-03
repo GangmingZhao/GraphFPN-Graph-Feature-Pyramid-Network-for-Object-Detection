@@ -1,16 +1,10 @@
 import tensorflow as tf
 import numpy as np
 import dgl
-import os, sys
 import keras.backend as K
 from dgl.nn.tensorflow import glob
 
-src_dir = os.path.dirname(os.path.realpath(__file__))
-while not src_dir.endswith("Graph-FPN"):
-    src_dir = os.path.dirname(src_dir)
-if src_dir not in sys.path:
-    sys.path.append(src_dir)
-from model.network import *
+from .network import *
 
 def stochastic_create_edges(g, n_edges = 0):
     assert n_edges>g.num_nodes(), "number of edges is smaller than that of nodes"
@@ -195,10 +189,16 @@ def gnn_cnn(g):
 if __name__ == "__main__":
 
     g = heterograph("pixel", 256, 1029, is_birect = False)
-    g = build_edges(g)
+    g = simple_birected(build_edges(g))
     g.ndata["pixel"] = tf.random.uniform([g.num_nodes(), 256], minval=-10, maxval=10)
-    sub_c = dgl.edge_type_subgraph(g, ["contextual"])
-    g = avg_pool_local(sub_c, "contextual")
+    c_layer = contextual_layers(256, 256)
+    subc = hetero_subgraph(g, "contextual")
+    subh = hetero_subgraph(g, "hierarchical")
+    nodes_update(subc, c_layer(subc, subc.ndata["pixel"]))
+    print(subc.ndata["pixel"])
+    print(g.ndata["pixel"])
+    print(subh.ndata["pixel"])
+    # g = avg_pool_local(sub_c, "contextual")
     # starttime = datetime.datetime.now()
     # g1 = dgl.graph(([0], [1]), num_nodes = 4096)
 

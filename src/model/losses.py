@@ -54,8 +54,8 @@ class RetinaNetLoss(tf.losses.Loss):
 
     def call(self, y_true, y_pred):
         y_pred = tf.cast(y_pred, dtype=tf.float32)
-        box_labels = y_true[:, :, :4]
-        box_predictions = y_pred[:, :, :4]
+        box_labels = y_true[:, :, :4]            
+        box_predictions = y_pred[:, :, :4]   # batch_size, num_obj, [box_outputs, cls_outputs]
         cls_labels = tf.one_hot(
             tf.cast(y_true[:, :, 4], dtype=tf.int32),
             depth=self._num_classes,

@@ -3,21 +3,20 @@ import keras.backend as K
 import numpy as np
 import os, sys
 import dgl
-import pdb
-
-from tensorflow.python.ops.gen_math_ops import Sigmoid
 
 src_dir = os.path.dirname(os.path.realpath(__file__))
-while not src_dir.endswith("Graph-FPN"):
-    src_dir = os.path.dirname(src_dir)
+while not src_dir.endswith("src"):
+    src_dir = os.path.dirname(src_dir) 
 if src_dir not in sys.path:
     sys.path.append(src_dir)
+
+from tensorflow.python.ops.gen_math_ops import Sigmoid
 
 from tensorflow import keras
 from .graph import *
 from detection.utils.anchor import *
 from detection.utils.bbox import *
-from dgl.nn.tensorflow import conv, glob
+from dgl.nn.tensorflow import conv
 
 """Building the ResNet50 backbone
 RetinaNet uses a ResNet based backbone, using which a feature pyramid network is constructed. In the example we use ResNet50 as the backbone, and return the feature maps at strides 8, 16 and 32."""
@@ -69,7 +68,7 @@ class channel_attention(keras.layers.Layer):
     def __init__(self, etype,**kwarg):
         super().__init__(**kwarg)
         self.etype = etype
-        self.pool1 = avg_pool_local
+        # self.pool1 = avg_pool_local
         self.fc1 = keras.layers.Dense(256, activation = "sigmoid")
          
     def call(self, g, h):
@@ -106,9 +105,7 @@ class contextual_layers(keras.layers.Layer):
 
     def call(self, g, in_feat):
         h = self.gat1(g, in_feat)
-        h = tf.nn.relu(h)
         h = self.gat2(g, h)
-        h = tf.nn.relu(h)
         h = self.gat3(g, h)
         h= tf.squeeze(h)
         return h
@@ -124,9 +121,7 @@ class hierarchical_layers(keras.layers.Layer):
 
     def call(self, g, in_feat):
         h = self.gat1(g, in_feat)
-        h = tf.nn.relu(h)
         h = self.gat2(g, h)
-        h = tf.nn.relu(h)
         h = self.gat3(g, h)
         h = tf.squeeze(h)
         return h
@@ -299,9 +294,7 @@ class RetinaNet(keras.Model):
         box_outputs = []
         for feature in features:
             box_outputs.append(tf.reshape(self.box_head(feature), [N, -1, 4]))
-            cls_outputs.append(
-                tf.reshape(self.cls_head(feature), [N, -1, self.num_classes])
-            )
+            cls_outputs.append(tf.reshape(self.cls_head(feature), [N, -1, self.num_classes]))
         cls_outputs = tf.concat(cls_outputs, axis=1)
         box_outputs = tf.concat(box_outputs, axis=1)
         return tf.concat([box_outputs, cls_outputs], axis=-1)
@@ -354,8 +347,8 @@ class DecodePredictions(tf.keras.layers.Layer):
         boxes = box_predictions * self._box_variance
         boxes = tf.concat(
             [
-                boxes[:, :, :2] * anchor_boxes[:, :, 2:] + anchor_boxes[:, :, :2],
-                tf.math.exp(boxes[:, :, 2:]) * anchor_boxes[:, :, 2:],
+                boxes[:, :, :2] * anchor_boxes[:, :, 2:] + anchor_boxes[:, :, :2],    # (x-x_a) / w_a, (y-y_a) / h_a
+                tf.math.exp(boxes[:, :, 2:]) * anchor_boxes[:, :, 2:],                # log(w/w_a), long(h/h_a)
             ],
             axis=-1,
         )
@@ -381,15 +374,3 @@ class DecodePredictions(tf.keras.layers.Layer):
 
 
 
-
-if __name__ == '__main__':
-    # Graph construction
-    dim_h = 256
-    g1 = dgl.graph(([0, 0, 0, 0, 0], [1, 2, 3, 4, 5]), num_nodes = 100)
-    g1 = dgl.add_reverse_edges(g1)
-    # load data to graph
-    g1.ndata['x'] = tf.ones((g1.num_nodes(), 2))
-    print(g1.ndata)
-    h = tf.constant([[100.0 ,50.0]])
-    g1.apply_nodes(lambda nodes: {'x' : h}, v=0)
-    print(g1.ndata)

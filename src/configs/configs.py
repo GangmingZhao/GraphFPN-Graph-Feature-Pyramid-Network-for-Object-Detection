@@ -10,7 +10,7 @@ if src_dir not in sys.path:
     sys.path.append(src_dir)
 
 def parse_configs():
-    parser = argparse.ArgumentParser(description='The Implementation using PyTorch')
+    parser = argparse.ArgumentParser(description='The Implementation using tensorflow')
     parser.add_argument('--seed', type=int, default=2020,
                         help='re-produce the results with seed random')
     parser.add_argument('--saved_fn', type=str, default='fpn_resnet_18', metavar='FN',
