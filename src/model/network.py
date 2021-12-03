@@ -99,9 +99,9 @@ class contextual_layers(keras.layers.Layer):
     def __init__(self, in_feats, h_feats, **kwarg):
         super().__init__(**kwarg)
         self.in_feats = in_feats
-        self.gat1 = conv.GATConv(in_feats, h_feats, 1)
-        self.gat2 = conv.GATConv(in_feats, h_feats, 1)
-        self.gat3= conv.GATConv(in_feats, h_feats, 1)
+        self.gat1 = conv.GATConv(in_feats, h_feats, 1, activation=tf.nn.relu)
+        self.gat2 = conv.GATConv(in_feats, h_feats, 1, activation=tf.nn.relu)
+        self.gat3= conv.GATConv(in_feats, h_feats, 1, activation=tf.nn.relu)
 
     def call(self, g, in_feat):
         h = self.gat1(g, in_feat)
@@ -115,9 +115,9 @@ class hierarchical_layers(keras.layers.Layer):
     def __init__(self, in_feats, h_feats, **kwarg):
         super().__init__(**kwarg)
         self.in_feats = in_feats
-        self.gat1 = conv.GATConv(in_feats, h_feats, 1)
-        self.gat2 = conv.GATConv(in_feats, h_feats, 1)
-        self.gat3= conv.GATConv(in_feats, h_feats, 1)
+        self.gat1 = conv.GATConv(in_feats, h_feats, 1, activation=tf.nn.relu)
+        self.gat2 = conv.GATConv(in_feats, h_feats, 1, activation=tf.nn.relu)
+        self.gat3= conv.GATConv(in_feats, h_feats, 1, activation=tf.nn.relu)
 
     def call(self, g, in_feat):
         h = self.gat1(g, in_feat)
