@@ -182,7 +182,7 @@ def cnn_gnn(g, c):
 def gnn_cnn(g): 
     p3 = tf.reshape(g.ndata["pixel"][:784], (1, 28, 28, 256))              # number of pixel in layers p3, 28*28 = 784
     p4 = tf.reshape(g.ndata["pixel"][784:980], (1, 14, 14, 256))            # number of pixel in layers p4, 14*14 = 196
-    p5 = tf.reshape(g.ndata["pixel"][980:1029], (1, 7, 7, 256))           # number of pixel in layers p4, 14*14 = 196
+    p5 = tf.reshape(g.ndata["pixel"][980:1029], (1, 7, 7, 256))           # number of pixel in layers p5, 7*7 = 49
     return p3, p4, p5
 
 
