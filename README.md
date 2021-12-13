@@ -1,7 +1,7 @@
 # GraphFPN: Graph Feature Pyramid Network for Object Detection with Retinanet
 Inspired by Graph_FPN and RetinaNet, we have used the Graph_FPN structure as a backbone to train on Retinanet and the work is not yet complete.  
 https://arxiv.org/abs/2108.00580   
-https://arxiv.org/abs/1708.02002
+
 
 For demonstraction with Graph_fpn, run:
 ~~~
@@ -52,3 +52,6 @@ ${ROOT}
 ├── README.md 
 └── requirements.txt
 ```
+
+## References
+[1] Retinanet: [Focal Loss for Dense Object Detection](https://arxiv.org/abs/1708.02002) <br>
