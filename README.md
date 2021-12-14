@@ -55,3 +55,4 @@ ${ROOT}
 ## References
 [1] Retinanet: [Focal Loss for Dense Object Detection](https://arxiv.org/abs/1708.02002) <br>
 [2] Graph-FPN: [GraphFPN: Graph Feature Pyramid Network for Object Detection](https://arxiv.org/abs/2108.00580) <br>
+[3] Object Detection with RetinaNet: [Keras Implementation](https://keras.io/examples/vision/retinanet/) <br>
