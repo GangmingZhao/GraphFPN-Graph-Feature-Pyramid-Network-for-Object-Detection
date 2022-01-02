@@ -19,7 +19,7 @@ def parse_configs():
                         help='The ROOT working directory')
     parser.add_argument('--r50_nograph_weight', type=str, default="data_demo/data", metavar='PATH',
                         help='Retinanet weight path')
-    parser.add_argument('--r101_graph_weight', type=str, default="checkpoint/", metavar='PATH',
+    parser.add_argument('--r50_graph_weight', type=str, default="checkpoint/", metavar='PATH',
                         help='Graph Retinanet weight path')
     parser.add_argument('--result_dir', type=str, default=os.path.join(src_dir, "results"), metavar='PATH',
                         help='The ROOT working directory')
@@ -84,14 +84,13 @@ def parse_configs():
     configs.num_classes = 80
     configs.loss = "RetinaNetLoss"
     configs.data = os.path.join(configs.root_dir, configs.r50_nograph_weight)
+    configs.backbone = "Resnet50"
     if configs.no_graph:
-        configs.backbone = "Resnet50"
         configs.Arch = "Retinanet" 
         configs.weight = os.path.join(configs.root_dir, configs.r50_nograph_weight)
     else:
-        configs.backbone = "Resnet101"
         configs.Arch = "Graph_Retinanet" 
-        configs.weight = os.path.join(configs.root_dir, configs.r101_graph_weight)
+        configs.weight = os.path.join(configs.root_dir, configs.r50_graph_weight)
     return configs
 
     

@@ -1,5 +1,4 @@
 import os
-import tensorflow as tf
 import tensorflow_datasets as tfds
 import init_path
 
@@ -14,7 +13,6 @@ def main():
     model = models[config.Arch](config.num_classes, backbone[config.backbone])
     optimizer = tf.keras.optimizers.Adam()
     model.compile(loss=loss[config.loss](config.num_classes), optimizer=optimizer, run_eagerly = True)           # Only can be run eagerly cuz the Mapping between CNN GNN
-    
     # Load the COCO2017 dataset using TensorFlow Datasets
     (train_dataset, val_dataset)= tfds.load("coco/2017", split=["train", "validation"],  data_dir=os.path.join(config.root_dir, "COCO"))
     

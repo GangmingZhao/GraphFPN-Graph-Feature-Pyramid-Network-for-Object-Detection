@@ -2,7 +2,6 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import numpy as np
 from .bbox import convert_to_corners
-import pdb
 
 
 def compute_iou(boxes1, boxes2):

@@ -1,7 +1,6 @@
 import tensorflow as tf
 import numpy as np
 import dgl
-import keras.backend as K
 from dgl.nn.tensorflow import glob
 
 from .network import *

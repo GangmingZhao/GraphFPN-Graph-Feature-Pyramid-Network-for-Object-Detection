@@ -1,14 +1,7 @@
 import tensorflow as tf
-import keras.backend as K
 import numpy as np
-import os, sys
 import dgl
 
-src_dir = os.path.dirname(os.path.realpath(__file__))
-while not src_dir.endswith("src"):
-    src_dir = os.path.dirname(src_dir) 
-if src_dir not in sys.path:
-    sys.path.append(src_dir)
 
 from tensorflow.python.ops.gen_math_ops import Sigmoid
 

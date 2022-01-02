@@ -21,7 +21,6 @@ def get_demo_data():
 def demo():
     get_demo_data()
     model = models[config.Arch](config.num_classes, backbone[config.backbone])
-
     # fine_tune_checkpoint_type
     ckpt = tf.train.Checkpoint(model)
     ckpt.restore(tf.train.latest_checkpoint(config.weight)).expect_partial()

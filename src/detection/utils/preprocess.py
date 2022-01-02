@@ -2,7 +2,6 @@ import tensorflow as tf
 from .bbox import *
 from .Label import LabelEncoder
 from .compute_IoU import visualize_detections
-import pdb
 
 """Preprocessing data
 Preprocessing the images involves two steps:
