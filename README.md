@@ -27,6 +27,9 @@ For test with fpn, run
 python test.py --no_graph
 ~~~
 
+If You need COCO API for test, you can download from [here](https://github.com/cocodataset/cocoapi).
+You need to set the backend of DGL to tensorflow, here is tutorial [link](https://docs.dgl.ai/install/index.html#tensorflow-backend)
+
 ## Folder structure
 
 ```
@@ -41,13 +44,26 @@ ${ROOT}
 │
 │
 └── data_demo/
-|   ├── data
+|   ├── data/
 |   |    ├── coco
 |   |    ├── checkpoint
 |   ├── data.zip
 |
-├── results
-├── src     
+├── results/
+├── src/     
+|   ├── configs/
+|   |    ├── configs.py
+|   |
+|   ├── detection/
+|   |    ├── datasets/
+|   |    |      ├── coco.py
+|   |    ├── utils/
+|   |
+|   ├── model/
+|   ├── init_path.py
+|   ├── demo.py
+|   ├── train.py
+|   ├── test.py
 ├── README.md 
 └── requirements.txt
 ```
