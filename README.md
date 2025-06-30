@@ -1,5 +1,4 @@
 # GraphFPN: Graph Feature Pyramid Network for Object Detection with Retinanet
-We have used the Graph_FPN structure as a backbone to train.
 
 Currently working with the author [Gangming Zhao](https://github.com/GangmingZhao), we will improve our code on mmdetection in the future.
 
